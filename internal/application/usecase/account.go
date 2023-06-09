@@ -17,8 +17,8 @@ type AccountUsecase struct {
 	fileRepo repository.IFile
 }
 
-func NewAccountUsecase(userRepo repository.IUser, fileRepo repository.IFile) *AccountUsecase {
-	return &AccountUsecase{
+func NewAccountUsecase(userRepo repository.IUser, fileRepo repository.IFile) AccountUsecase {
+	return AccountUsecase{
 		userRepo: userRepo,
 		fileRepo: fileRepo,
 	}
@@ -75,7 +75,7 @@ func (a *AccountUsecase) AuthUser(args AuthUserArgs) (string, error) {
 		return "", errors.New("wrong password")
 	}
 
-	token, err := generateJWT(&validUser)
+	token, err := generateJWT(validUser)
 	if err != nil {
 		return "", err
 	}

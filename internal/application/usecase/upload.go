@@ -20,7 +20,7 @@ func NewUploadUsecase(userRepo repository.IUser, fileRepo repository.IFile, s3Cl
 }
 
 type UploadFileArgs struct {
-	// File 
+	// File
 }
 
 func (u *UploadUsecase) UploadFile() {

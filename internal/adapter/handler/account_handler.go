@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/ccallazans/filedrop/internal/application/usecase"
@@ -18,25 +19,23 @@ func NewAccountHandler(accountUsecase usecase.AccountUsecase) *AccountHandler {
 	}
 }
 
-var validate *validator.Validate
-
 func (a *AccountHandler) CreateUser(c echo.Context) error {
 
 	type CreateUserRequest struct {
 		Name     string `json:"name" validate:"required"`
-		Email    string `json:"email" validate:"required"`
-		Password string `json:"password" validate:"required,email"`
+		Email    string `json:"email" validate:"required,email"`
+		Password string `json:"password" validate:"required"`
 	}
 
 	var createUserRequest CreateUserRequest
 	err := c.Bind(&createUserRequest)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	err = validate.Struct(createUserRequest)
+	err = validator.New().Struct(&createUserRequest)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
 	err = a.accountUsecase.CreateUser(usecase.CreateUserArgs{
@@ -45,7 +44,8 @@ func (a *AccountHandler) CreateUser(c echo.Context) error {
 		Password: createUserRequest.Password,
 	})
 	if err != nil {
-		return c.JSON(http.StatusForbidden, err)
+		log.Println(err)
+		return c.JSON(http.StatusForbidden, err.Error())
 	}
 
 	return c.JSON(http.StatusOK, createUserRequest)
@@ -54,23 +54,23 @@ func (a *AccountHandler) CreateUser(c echo.Context) error {
 func (a *AccountHandler) AuthUser(c echo.Context) error {
 
 	type AuthUserRequest struct {
-		Email    string `json:"email" validate:"required"`
-		Password string `json:"password" validate:"required,email"`
+		Email    string `json:"email" validate:"required,email"`
+		Password string `json:"password" validate:"required"`
 	}
 
 	var authUserRequest AuthUserRequest
 	err := c.Bind(&authUserRequest)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	err = validate.Struct(authUserRequest)
+	err = validator.New().Struct(authUserRequest)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
 	token, err := a.accountUsecase.AuthUser(usecase.AuthUserArgs{
-		Email: authUserRequest.Email,
+		Email:    authUserRequest.Email,
 		Password: authUserRequest.Password,
 	})
 	if err != nil {
