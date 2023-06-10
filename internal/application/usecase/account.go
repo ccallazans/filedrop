@@ -43,7 +43,7 @@ func (a *AccountUsecase) CreateUser(args CreateUserArgs) error {
 	}
 
 	newUser := &domain.User{
-		UUID:     uuid.New(),
+		UUID:       uuid.New(),
 		Name:     args.Name,
 		Email:    args.Email,
 		Password: args.Password,

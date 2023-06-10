@@ -3,6 +3,7 @@ package repository
 import (
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/ccallazans/filedrop/internal/domain/repository"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -26,11 +27,11 @@ func (r *fileRepository) Save(file *domain.File) error {
 	return nil
 }
 
-func (r *fileRepository) FindById(id int) (*domain.File, error) {
+func (r *fileRepository) FindByUUID(uuid uuid.UUID) (*domain.File, error) {
 
 	file := &domain.File{}
 
-	result := r.db.First(file, "id = ?", id)
+	result := r.db.First(file, "uuid = ?", uuid)
 	if result.Error != nil {
 		return &domain.File{}, result.Error
 	}

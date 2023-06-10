@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS access_files;
+
 DROP TABLE IF EXISTS files;
 
 DROP TABLE IF EXISTS users;

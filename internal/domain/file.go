@@ -1,9 +1,11 @@
 package domain
 
+import "github.com/google/uuid"
+
 type File struct {
-	ID          string
+	UUID        uuid.UUID
 	Filename    string
 	Size        string
 	LocationURL string
-	UserUUID    string
+	UserUUID    uuid.UUID
 }

@@ -2,14 +2,15 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"log"
+	"mime/multipart"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/ccallazans/filedrop/internal/application/service"
 )
 
 type S3ClientService struct {
@@ -17,7 +18,7 @@ type S3ClientService struct {
 	Bucket   string
 }
 
-func NewS3ClientService() *S3ClientService {
+func NewS3ClientService() service.IS3Client {
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
 		return nil
@@ -31,36 +32,52 @@ func NewS3ClientService() *S3ClientService {
 	}
 }
 
-func (s *S3ClientService) Save(key *string, file io.Reader) {
+func (s *S3ClientService) Save(key string, file *multipart.File) (string, error) {
 	ctx := context.Background()
 
 	uploader := manager.NewUploader(s.s3CLient)
 
 	result, err := uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: &s.Bucket,
-		Key:    key,
-		Body:   file,
+		Key:    &key,
+		Body:   *file,
 	})
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
-	log.Println("File Uploaded Successfully, URL : ", result.Location)
+	return result.Location, nil
 }
 
-func (s *S3ClientService) Get(key string) {
+func (s *S3ClientService) Get(key string) (*aws.WriteAtBuffer, error) {
 	downloader := manager.NewDownloader(s.s3CLient)
 
-	file, err := os.Create(key)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	numBytes, err := downloader.Download(context.TODO(), file, &s3.GetObjectInput{
+	buf := aws.NewWriteAtBuffer([]byte{})
+	_, err := downloader.Download(context.TODO(), buf, &s3.GetObjectInput{
 		Bucket: &s.Bucket,
 		Key:    &key,
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	fmt.Println("File donwloaded!: ", numBytes)
+	buf.Bytes()
+
+	return buf, nil
+}
+
+func readFileInMemory(fileHeader *multipart.FileHeader) (*[]byte, error) {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// Read the file contents into memory
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return &fileBytes, nil
 }

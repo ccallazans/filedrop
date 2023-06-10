@@ -1,8 +1,12 @@
 package service
 
-import "io"
+import (
+	"mime/multipart"
+
+	"github.com/aws/aws-sdk-go/aws"
+)
 
 type IS3Client interface {
-	Save(key *string, file io.Reader)
-	Get(key string)
+	Save(key string, file *multipart.File) (string, error)
+	Get(key string) (*aws.WriteAtBuffer, error)
 }

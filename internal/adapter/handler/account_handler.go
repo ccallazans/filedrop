@@ -19,7 +19,7 @@ func NewAccountHandler(accountUsecase usecase.AccountUsecase) *AccountHandler {
 	}
 }
 
-func (a *AccountHandler) CreateUser(c echo.Context) error {
+func (h *AccountHandler) CreateUser(c echo.Context) error {
 
 	type CreateUserRequest struct {
 		Name     string `json:"name" validate:"required"`
@@ -30,28 +30,28 @@ func (a *AccountHandler) CreateUser(c echo.Context) error {
 	var createUserRequest CreateUserRequest
 	err := c.Bind(&createUserRequest)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return ErrorHandler(err, http.StatusBadRequest, c)
 	}
 
 	err = validator.New().Struct(&createUserRequest)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return ErrorHandler(err, http.StatusBadRequest, c)
 	}
 
-	err = a.accountUsecase.CreateUser(usecase.CreateUserArgs{
+	err = h.accountUsecase.CreateUser(usecase.CreateUserArgs{
 		Name:     createUserRequest.Name,
 		Email:    createUserRequest.Email,
 		Password: createUserRequest.Password,
 	})
 	if err != nil {
 		log.Println(err)
-		return c.JSON(http.StatusForbidden, err.Error())
+		return ErrorHandler(err, http.StatusBadRequest, c)
 	}
 
 	return c.JSON(http.StatusOK, createUserRequest)
 }
 
-func (a *AccountHandler) AuthUser(c echo.Context) error {
+func (h *AccountHandler) AuthUser(c echo.Context) error {
 
 	type AuthUserRequest struct {
 		Email    string `json:"email" validate:"required,email"`
@@ -61,20 +61,20 @@ func (a *AccountHandler) AuthUser(c echo.Context) error {
 	var authUserRequest AuthUserRequest
 	err := c.Bind(&authUserRequest)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return ErrorHandler(err, http.StatusBadRequest, c)
 	}
 
 	err = validator.New().Struct(authUserRequest)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return ErrorHandler(err, http.StatusBadRequest, c)
 	}
 
-	token, err := a.accountUsecase.AuthUser(usecase.AuthUserArgs{
+	token, err := h.accountUsecase.AuthUser(usecase.AuthUserArgs{
 		Email:    authUserRequest.Email,
 		Password: authUserRequest.Password,
 	})
 	if err != nil {
-		return c.JSON(http.StatusForbidden, err)
+		return ErrorHandler(err, http.StatusBadRequest, c)
 	}
 
 	type AuthUserResponse struct {
