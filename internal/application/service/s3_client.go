@@ -7,6 +7,6 @@ import (
 )
 
 type IS3Client interface {
-	Save(key string, file *multipart.File) (string, error)
+	Save(key string, file *multipart.FileHeader) (string, error)
 	Get(key string) (*aws.WriteAtBuffer, error)
 }

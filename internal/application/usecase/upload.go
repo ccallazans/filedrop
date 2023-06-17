@@ -15,6 +15,7 @@ import (
 	"github.com/ccallazans/filedrop/internal/domain/valueobject"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 const (
@@ -37,6 +38,13 @@ func NewUploadUsecase(userRepo repository.IUser, fileRepo repository.IFile, acce
 	}
 }
 
+func (u *UploadUsecase) WithTrx(trxHandle *gorm.DB) UploadUsecase {
+	u.userRepo = u.userRepo.WithTrx(trxHandle)
+	fileRepo.WithTrx(trxHandle)
+	accessFileRepo.WithTrx(trxHandle)
+	return u
+}
+
 type UploadFileArgs struct {
 	Lock       bool
 	AccessCode string
@@ -45,32 +53,54 @@ type UploadFileArgs struct {
 
 func (u *UploadUsecase) UploadFile(args *UploadFileArgs) error {
 
-	if args.File.Size > MAX_FILE_SIZE {
-		return fmt.Errorf("max size allowed: %d, uploaded file: %d", MAX_FILE_SIZE, args.File.Size)
-	}
+	// if args.File.Size > MAX_FILE_SIZE {
+	// 	return fmt.Errorf("max size allowed: %d, uploaded file: %d", MAX_FILE_SIZE, args.File.Size)
+	// }
 
-	readFile, err := args.File.Open()
+	txFileRepo, err := u.fileRepo.Begin()
 	if err != nil {
 		return err
 	}
-	defer readFile.Close()
+	txAccessFileRepo, err := u.accessFileRepo.Begin()
+	if err != nil {
+		u.fileRepo.Rollback()
+		return err
+	}
 
-	location, err := u.s3Client.Save(args.File.Filename, &readFile)
+	u.fileRepo
+
+	defer func() {
+		if r := recover(); r != nil {
+			u.fileRepo.Rollback()
+			u.accessFileRepo.Rollback()
+			fmt.Println("Recovered from panic during transaction:", r)
+		} else if err != nil {
+			u.fileRepo.Rollback()
+			u.accessFileRepo.Rollback()
+			fmt.Println("Rolling back transaction due to error:", err)
+		} else {
+			u.fileRepo.Commit()
+			u.accessFileRepo.Commit()
+		}
+	}()
+
+	location, err := u.s3Client.Save(args.File.Filename, args.File)
 	if err != nil {
 		return err
 	}
 
 	fileSize := strconv.FormatFloat(bytesToMegabytes(args.File.Size), 'f', -1, 64)
-
 	saveFile := &domain.File{
 		UUID:        uuid.New(),
 		Filename:    args.File.Filename,
 		Size:        fileSize,
 		LocationURL: location,
+		UserUUID:    uuid.MustParse("74318875-6aca-4bdc-a00b-4d2c5d38dd0f"),
 	}
 
 	hash, err := generateRandomHash(6)
 	if err != nil {
+		u.fileRepo.Rollback()
 		return err
 	}
 
@@ -78,15 +108,23 @@ func (u *UploadUsecase) UploadFile(args *UploadFileArgs) error {
 		Hash:       hash,
 		Lock:       args.Lock,
 		AccessCode: args.AccessCode,
-		FileUUID:   saveFile.UUID,
+		FileUUID:   uuid.MustParse("74318875-6aca-4bdc-a00b-4d2c5d38dd0f"),
 	}
 
 	err = u.fileRepo.Save(saveFile)
 	if err != nil {
+		u.fileRepo.Rollback()
 		return err
 	}
 
 	err = u.accessFileRepo.Save(saveAccessFile)
+	if err != nil {
+		fmt.Println("---------------------------------> AAAAAAAAAAAA")
+		u.fileRepo.Rollback()
+		return err
+	}
+
+	err = u.fileRepo.Commit()
 	if err != nil {
 		return err
 	}

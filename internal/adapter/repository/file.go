@@ -1,6 +1,9 @@
 package repository
 
 import (
+	"database/sql"
+	"log"
+
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/ccallazans/filedrop/internal/domain/repository"
 	"github.com/google/uuid"
@@ -8,7 +11,7 @@ import (
 )
 
 type fileRepository struct {
-	db *gorm.DB
+	DB *gorm.DB
 }
 
 func NewFileRepository(db *gorm.DB) repository.IFile {
@@ -16,6 +19,13 @@ func NewFileRepository(db *gorm.DB) repository.IFile {
 		db: db,
 	}
 }
+
+func (r *fileRepository) Begin() *gorm.DB {
+	return r.db.Begin()
+}
+
+func (r *fileRepository) Rollback() error { return r.db.Rollback().Error }
+func (r *fileRepository) Commit() error { return r.db.Commit().Error }
 
 func (r *fileRepository) Save(file *domain.File) error {
 

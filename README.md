@@ -1,1 +1,18 @@
 # share-file
+
+export GOROOT=/usr/local/go
+export GOPATH=$HOME/go
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+
+
+DB_USER=
+DB_PASSWORD=
+DB_HOST=
+DB_DATABASE=
+
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_S3_BUCKET=
+AWS_REGION=
+
+JWT_SIGN_KEY=

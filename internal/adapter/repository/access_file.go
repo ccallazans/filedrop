@@ -1,6 +1,9 @@
 package repository
 
 import (
+	"database/sql"
+	"log"
+
 	"github.com/ccallazans/filedrop/internal/domain/repository"
 	"github.com/ccallazans/filedrop/internal/domain/valueobject"
 	"gorm.io/gorm"
@@ -15,6 +18,28 @@ func NewAccessFileRepository(db *gorm.DB) repository.IAccessFile {
 		db: db,
 	}
 }
+
+func (r *accessFileRepository) WithTrx(trxHandle *gorm.DB) *accessFileRepository {
+	if trxHandle == nil {
+		log.Print("Transaction Database not found")
+		return r
+	}
+
+	r.db = trxHandle
+	return r
+}
+
+func (r *accessFileRepository) Begin() (*sql.DB, error) {
+	db, err := r.db.Begin().DB()
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func (r *accessFileRepository) Rollback() error { return r.db.Rollback().Error }
+func (r *accessFileRepository) Commit() error   { return r.db.Commit().Error }
 
 func (r *accessFileRepository) Save(accessFile *valueobject.AccessFile) error {
 

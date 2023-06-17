@@ -6,6 +6,7 @@ import (
 
 	"github.com/ccallazans/filedrop/internal/application/service"
 	"github.com/ccallazans/filedrop/internal/application/usecase"
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 )
 
@@ -24,9 +25,9 @@ func NewUploadHandler(uploadUsecase usecase.UploadUsecase, s3Client service.IS3C
 func (h *UploadHandler) UploadFile(c echo.Context) error {
 
 	type UploadFileRequest struct {
-		Lock       bool                 `form:"lock" validate:"required"`
-		AccessCode string               `form:"access_code" validate:"required"`
-		File       multipart.FileHeader `form:"file" validate:"required"`
+		Lock       bool                  `form:"lock"`
+		AccessCode string                `form:"access_code"`
+		File       *multipart.FileHeader `form:"file"`
 	}
 
 	var request UploadFileRequest
@@ -35,12 +36,20 @@ func (h *UploadHandler) UploadFile(c echo.Context) error {
 		return ErrorHandler(err, http.StatusBadRequest, c)
 	}
 
-	c.JSON(200, request)
+	request.File, err = c.FormFile("file")
+	if err != nil {
+		return ErrorHandler(err, http.StatusBadRequest, c)
+	}
+
+	err = validator.New().Struct(request)
+	if err != nil {
+		return ErrorHandler(err, http.StatusBadRequest, c)
+	}
 
 	err = h.uploadUsecase.UploadFile(&usecase.UploadFileArgs{
 		Lock:       request.Lock,
 		AccessCode: request.AccessCode,
-		File:       &request.File,
+		File:       request.File,
 	})
 	if err != nil {
 		return ErrorHandler(err, http.StatusBadRequest, c)
@@ -51,7 +60,7 @@ func (h *UploadHandler) UploadFile(c echo.Context) error {
 
 func (h *UploadHandler) AccessFile(c echo.Context) error {
 
-	hash := c.Param("name")
+	hash := c.Param("hash")
 
 	type AccessFileRequest struct {
 		AccessCode string `json:"access_code" validate:"required"`

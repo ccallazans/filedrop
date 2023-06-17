@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"io"
 	"mime/multipart"
 	"os"
 
@@ -32,15 +31,20 @@ func NewS3ClientService() service.IS3Client {
 	}
 }
 
-func (s *S3ClientService) Save(key string, file *multipart.File) (string, error) {
-	ctx := context.Background()
-
+func (s *S3ClientService) Save(key string, file *multipart.FileHeader) (string, error) {
+	readFile, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+	defer readFile.Close()
+	
 	uploader := manager.NewUploader(s.s3CLient)
+	uploader.
 
-	result, err := uploader.Upload(ctx, &s3.PutObjectInput{
+	result, err := uploader.Upload(context.Background(), &s3.PutObjectInput{
 		Bucket: &s.Bucket,
 		Key:    &key,
-		Body:   *file,
+		Body:   readFile,
 	})
 	if err != nil {
 		return "", err
@@ -66,18 +70,18 @@ func (s *S3ClientService) Get(key string) (*aws.WriteAtBuffer, error) {
 	return buf, nil
 }
 
-func readFileInMemory(fileHeader *multipart.FileHeader) (*[]byte, error) {
-	file, err := fileHeader.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
+// func readFileInMemory(fileHeader *multipart.FileHeader) (*[]byte, error) {
+// 	file, err := fileHeader.Open()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer file.Close()
 
-	// Read the file contents into memory
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
+// 	// Read the file contents into memory
+// 	fileBytes, err := io.ReadAll(file)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return &fileBytes, nil
-}
+// 	return &fileBytes, nil
+// }

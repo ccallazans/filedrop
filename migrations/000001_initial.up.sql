@@ -8,9 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS files (
 	UUID UUID primary key,
-	filename VARCHAR(50) not null,
+	filename text not null,
 	size VARCHAR(50) not null,
-	location_url VARCHAR(50) not null,
+	location_url text not null,
 	user_uuid UUID REFERENCES users(uuid)
 );
 
