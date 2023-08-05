@@ -3,11 +3,10 @@ package domain
 import "github.com/google/uuid"
 
 type User struct {
-	UUID     uuid.UUID
-	Name     string
+	ID       string
+	UUID     string
 	Email    string
 	Password string
-	Role     UserRole
 }
 
 type UserRole string

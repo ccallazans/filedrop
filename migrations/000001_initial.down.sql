@@ -1,5 +1,7 @@
-DROP TABLE IF EXISTS access_files;
+drop table if exists file_access;
 
-DROP TABLE IF EXISTS files;
+drop table if exists files;
 
-DROP TABLE IF EXISTS users;
+drop table if exists users;
+
+drop table if exists roles;

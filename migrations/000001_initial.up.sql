@@ -1,22 +1,42 @@
-CREATE TABLE IF NOT EXISTS users (
-    UUID UUID PRIMARY KEY,
-    name VARCHAR(50) not null,
-    email VARCHAR(50) unique not null,
-    password VARCHAR(100) not null,
-    role VARCHAR(50) not null
+create table if not exists roles (
+    id serial not null,
+    role varchar(255) unique not null,
+
+    constraint pk_roles primary key(id)
 );
 
-CREATE TABLE IF NOT EXISTS files (
-	UUID UUID primary key,
-	filename text not null,
-	size VARCHAR(50) not null,
-	location_url text not null,
-	user_uuid UUID REFERENCES users(uuid)
+insert into roles(role) values ('ADMIN'), ('USER');
+
+create table if not exists users (
+    id serial not null,
+    uuid uuid unique not null,
+    email varchar(255) unique not null,
+    password varchar(255) not null,
+    role_id serial not null,
+
+    constraint pk_users primary key(id),
+    constraint fk_users_roles foreign key (role_id) references roles(id)
 );
 
-CREATE TABLE IF NOT EXISTS access_files (
-    hash VARCHAR(6) PRIMARY KEY,
-    lock BOOLEAN not null,
-    access_code VARCHAR(100) not null,
-    file_UUID UUID REFERENCES files(UUID)
+create table if not exists files (
+    id serial not null,
+    uuid uuid unique not null,
+    filename varchar(255) not null,
+    size varchar(255) not null,
+    location varchar(255) not null,
+    user_id serial not null,
+
+    constraint pk_files primary key(id),
+    constraint fk_files_users foreign key (user_id) references users(id)
+);
+
+create table if not exists file_access (
+    id serial not null,
+    uuid uuid unique not null,
+    hash varchar(5) unique not null,
+    secret varchar(255),
+    file_id serial not null,
+
+    constraint pk_file_access primary key(id),
+    constraint fk_file_access_files foreign key (file_id) references files(id)
 );
