@@ -1,11 +1,16 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"time"
+)
 
 type File struct {
-	UUID        uuid.UUID
-	Filename    string
-	Size        string
-	LocationURL string
-	UserUUID    uuid.UUID
+	ID        uint
+	UUID      string
+	Filename  string
+	Size      string
+	Location  string
+	UserID    uint
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

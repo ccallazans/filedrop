@@ -13,6 +13,8 @@ create table if not exists users (
     email varchar(255) unique not null,
     password varchar(255) not null,
     role_id serial not null,
+    created_at timestamp not null,
+    updated_at timestamp not null,
 
     constraint pk_users primary key(id),
     constraint fk_users_roles foreign key (role_id) references roles(id)
@@ -25,6 +27,8 @@ create table if not exists files (
     size varchar(255) not null,
     location varchar(255) not null,
     user_id serial not null,
+    created_at timestamp not null,
+    updated_at timestamp not null,
 
     constraint pk_files primary key(id),
     constraint fk_files_users foreign key (user_id) references users(id)
@@ -36,6 +40,8 @@ create table if not exists file_access (
     hash varchar(5) unique not null,
     secret varchar(255),
     file_id serial not null,
+    created_at timestamp not null,
+    updated_at timestamp not null,
 
     constraint pk_file_access primary key(id),
     constraint fk_file_access_files foreign key (file_id) references files(id)

@@ -2,10 +2,11 @@ package main
 
 import (
 	"log"
+	"os"
 
-	"github.com/ccallazans/filedrop/internal/adapter/handler"
-	postgresql "github.com/ccallazans/filedrop/internal/adapter/postgres"
 	"github.com/joho/godotenv"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -15,11 +16,8 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	pgdb, err := postgresql.NewPostgresConn()
+	pgdb, err := gorm.Open(postgres.Open(os.Getenv("DATABASE_URL")), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("asdasdasd")
 	}
-
-	router := handler.NewRouter(pgdb)
-	router.Start(":8080")
 }

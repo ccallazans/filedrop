@@ -1,17 +1,15 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"time"
+)
 
 type User struct {
-	ID       string
-	UUID     string
-	Email    string
-	Password string
+	ID        uint
+	UUID      string
+	Email     string
+	Password  string
+	RoleID    uint
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
-
-type UserRole string
-
-const (
-	USER  UserRole = "USER"
-	ADMIN UserRole = "ADMIN"
-)
