@@ -1,78 +1,69 @@
 package usecase
 
 import (
+	"context"
 	"errors"
+	"log"
 	"os"
 	"time"
 
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/ccallazans/filedrop/internal/domain/repository"
+	"github.com/ccallazans/filedrop/internal/utils"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AccountUsecase struct {
-	userRepo repository.IUser
-	fileRepo repository.IFile
+	userRepo repository.UserRepository
+	fileRepo repository.FileRepository
 }
 
-func NewAccountUsecase(userRepo repository.IUser, fileRepo repository.IFile) AccountUsecase {
+func NewAccountUsecase(userRepo repository.UserRepository, fileRepo repository.FileRepository) AccountUsecase {
 	return AccountUsecase{
 		userRepo: userRepo,
 		fileRepo: fileRepo,
 	}
 }
 
-type CreateUserArgs struct {
-	Name     string
-	Email    string
-	Password string
-}
+func (a *AccountUsecase) CreateUser(ctx context.Context, email string, password string) error {
 
-func (a *AccountUsecase) CreateUser(args CreateUserArgs) error {
-
-	_, err := a.userRepo.FindByEmail(args.Email)
-	if err == nil {
-		return errors.New("email already registered")
+	existingUser, err := a.userRepo.FindByEmail(ctx, email)
+	if existingUser != nil {
+		return &utils.ErrorType{Type: utils.ValidationErr, Message: "email already registered!"}
 	}
 
-	args.Password, err = hashPassword(args.Password)
+	hashedPassword, err := hashPassword(password)
 	if err != nil {
-		return errors.New("error hashing password")
+		log.Printf("error hashing password: %s", err.Error())
+		return &utils.ErrorType{Type: utils.InternalErr, Message: err.Error()}
 	}
 
 	newUser := &domain.User{
-		UUID:       uuid.New(),
-		Name:     args.Name,
-		Email:    args.Email,
-		Password: args.Password,
-		Role:     domain.USER,
+		Email:    email,
+		Password: hashedPassword,
 	}
 
-	err = a.userRepo.Save(newUser)
+	err = a.userRepo.Save(ctx, newUser)
 	if err != nil {
-		return errors.New("error creating user")
+		log.Println("error saving user into database: %s", err.Error())
+		return &utils.ErrorType{Type: utils.InternalErr, Message: err.Error()}
 	}
 
 	return nil
 }
 
-type AuthUserArgs struct {
-	Email    string
-	Password string
-}
+func (a *AccountUsecase) AuthUser(ctx context.Context, email string, password string) (string, error) {
 
-func (a *AccountUsecase) AuthUser(args AuthUserArgs) (string, error) {
-
-	validUser, err := a.userRepo.FindByEmail(args.Email)
+	validUser, err := a.userRepo.FindByEmail(ctx, email)
 	if err != nil {
-		return "", errors.New("email not registered")
+		return "", &utils.ErrorType{Type: utils.ValidationErr, Message: "email not registered!"}
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(validUser.Password), []byte(args.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(validUser.Password), []byte(password))
 	if err != nil {
-		return "", errors.New("wrong password")
+		return "", &utils.ErrorType{Type: utils.ValidationErr, Message: "wrong password!"}
 	}
 
 	token, err := generateJWT(validUser)

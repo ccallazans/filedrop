@@ -12,4 +12,6 @@ type User struct {
 	RoleID    uint
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
+	Role Role
 }
