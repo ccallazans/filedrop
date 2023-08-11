@@ -2,16 +2,15 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"log"
 	"os"
 	"time"
 
+	"github.com/ccallazans/filedrop/internal/application/auth"
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/ccallazans/filedrop/internal/domain/repository"
 	"github.com/ccallazans/filedrop/internal/utils"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -36,8 +35,7 @@ func (a *AccountUsecase) CreateUser(ctx context.Context, email string, password 
 
 	hashedPassword, err := hashPassword(password)
 	if err != nil {
-		log.Printf("error hashing password: %s", err.Error())
-		return &utils.ErrorType{Type: utils.InternalErr, Message: err.Error()}
+		return err
 	}
 
 	newUser := &domain.User{
@@ -74,41 +72,28 @@ func (a *AccountUsecase) AuthUser(ctx context.Context, email string, password st
 	return token, nil
 }
 
-type JWTClaim struct {
-	User JWTUser
-	jwt.RegisteredClaims
-}
-
-type JWTUser struct {
-	UUID  uuid.UUID
-	Name  string
-	Email string
-	Role  domain.UserRole
-}
-
 func generateJWT(user *domain.User) (string, error) {
 
-	claims := &JWTClaim{
-		User: JWTUser{
+	claims := &auth.JWTClaim{
+		User: auth.JWTUser{
 			UUID:  user.UUID,
-			Name:  user.Name,
 			Email: user.Email,
-			Role:  user.Role,
+			Role:  user.Role.Role,
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "localhost",
-			Subject:   user.UUID.String(),
-			Audience:  jwt.ClaimStrings{"localhost"},
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			Issuer:    "filedrop",
+			Subject:   user.UUID,
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SIGN_KEY")))
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
 	if err != nil {
-		return "", err
+		log.Printf("error creating token: %s", err.Error())
+		return "", &utils.ErrorType{Type: utils.InternalErr, Message: err.Error()}
 	}
 
 	return tokenString, nil
@@ -117,7 +102,8 @@ func generateJWT(user *domain.User) (string, error) {
 func hashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		log.Printf("error hashing password: %s", err.Error())
+		return "", &utils.ErrorType{Type: utils.InternalErr, Message: err.Error()}
 	}
 
 	return string(hashedPassword), nil
