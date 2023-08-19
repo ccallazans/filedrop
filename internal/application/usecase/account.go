@@ -11,6 +11,7 @@ import (
 	"github.com/ccallazans/filedrop/internal/domain/repository"
 	"github.com/ccallazans/filedrop/internal/utils"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,8 +40,10 @@ func (a *AccountUsecase) CreateUser(ctx context.Context, email string, password 
 	}
 
 	newUser := &domain.User{
+		UUID: uuid.NewString(),
 		Email:    email,
 		Password: hashedPassword,
+		RoleID: domain.USER,
 	}
 
 	err = a.userRepo.Save(ctx, newUser)
@@ -76,6 +79,7 @@ func generateJWT(user *domain.User) (string, error) {
 
 	claims := &auth.JWTClaim{
 		User: auth.JWTUser{
+			ID: user.ID,
 			UUID:  user.UUID,
 			Email: user.Email,
 			Role:  user.Role.Role,

@@ -10,6 +10,7 @@ type JWTClaim struct {
 }
 
 type JWTUser struct {
+	ID uint
 	UUID  string
 	Email string
 	Role  string

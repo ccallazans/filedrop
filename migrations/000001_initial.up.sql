@@ -36,7 +36,6 @@ create table if not exists files (
 
 create table if not exists file_access (
     id serial not null,
-    uuid uuid unique not null,
     hash varchar(5) unique not null,
     secret varchar(255),
     file_id serial not null,
