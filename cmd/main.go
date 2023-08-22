@@ -1,13 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/ccallazans/filedrop/internal/domain"
+	"github.com/ccallazans/filedrop/internal/api"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -20,18 +17,11 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	sess, err := session.NewSession();
-	aaaa := s3.New(sess)
-	aaaa.uploa
-
 	pgdb, err := gorm.Open(postgres.Open(os.Getenv("DATABASE_URL")), &gorm.Config{})
 	if err != nil {
-		log.Fatal("asdasdasd")
+		log.Fatal(err)
 	}
 
-	u := domain.User{}
-
-	pgdb.Preload("Role").Find(&u, 1)
-
-	fmt.Println(u.Role)
+	router := api.NewRouter(pgdb)
+	router.Start(":8080")
 }

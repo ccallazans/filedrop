@@ -12,3 +12,7 @@ type FileAccess struct {
 
 	File File
 }
+
+func (FileAccess) TableName() string {
+	return "file_access"
+}

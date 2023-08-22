@@ -40,10 +40,10 @@ func (a *AccountUsecase) CreateUser(ctx context.Context, email string, password 
 	}
 
 	newUser := &domain.User{
-		UUID: uuid.NewString(),
+		UUID:     uuid.NewString(),
 		Email:    email,
 		Password: hashedPassword,
-		RoleID: domain.USER,
+		RoleID:   domain.USER,
 	}
 
 	err = a.userRepo.Save(ctx, newUser)
@@ -79,7 +79,7 @@ func generateJWT(user *domain.User) (string, error) {
 
 	claims := &auth.JWTClaim{
 		User: auth.JWTUser{
-			ID: user.ID,
+			ID:    user.ID,
 			UUID:  user.UUID,
 			Email: user.Email,
 			Role:  user.Role.Role,
