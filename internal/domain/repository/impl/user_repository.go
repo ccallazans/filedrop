@@ -25,7 +25,7 @@ func (r *userRepositoryImpl) DB() *gorm.DB {
 
 func (r *userRepositoryImpl) FindByUUID(ctx context.Context, uuid string) (*domain.User, error) {
 	user := &domain.User{}
-	err := r.db.WithContext(ctx).Where("uuid = ?", uuid).First(user).Error
+	err := r.db.WithContext(ctx).Preload("Role").Where("uuid = ?", uuid).First(user).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to find user by uuid: %w", err)
 	}
@@ -35,7 +35,7 @@ func (r *userRepositoryImpl) FindByUUID(ctx context.Context, uuid string) (*doma
 
 func (r *userRepositoryImpl) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	user := &domain.User{}
-	err := r.db.WithContext(ctx).Where("email = ?", email).First(user).Error
+	err := r.db.WithContext(ctx).Preload("Role").Where("email = ?", email).First(user).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to find user by email: %w", err)
 	}

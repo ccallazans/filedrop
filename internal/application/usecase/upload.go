@@ -9,8 +9,9 @@ import (
 	"mime/multipart"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/ccallazans/filedrop/internal/domain/repository"
 	"github.com/ccallazans/filedrop/internal/utils"
@@ -25,33 +26,33 @@ type UploadUsecase struct {
 	fileRepo       repository.FileRepository
 	fileAccessRepo repository.FileAccessRepository
 	userRepo       repository.UserRepository
-	s3Client       s3.S3
+	s3Client       *s3.Client
 }
 
-func NewUploadUsecase(fileRepo repository.FileRepository, fileAccessRepo repository.FileAccessRepository, userRepo repository.UserRepository, s3Client *s3.S3) UploadUsecase {
+func NewUploadUsecase(fileRepo repository.FileRepository, fileAccessRepo repository.FileAccessRepository, userRepo repository.UserRepository, s3Client *s3.Client) UploadUsecase {
 	return UploadUsecase{
 		fileRepo:       fileRepo,
 		fileAccessRepo: fileAccessRepo,
 		userRepo:       userRepo,
-		s3Client:       *s3Client,
+		s3Client:       s3Client,
 	}
 }
 
 func (u *UploadUsecase) UploadFile(ctx context.Context, secret string, multiPartFile *multipart.FileHeader) (string, error) {
 
-	// ctxUser, err := utils.GetContextUser(ctx)
-	// if err != nil {
-	// 	log.Println("error uploading file")
-	// 	return err
-	// }
-	ctxUser := &domain.User{ID: 1}
+	ctxUser, err := utils.GetContextUser(ctx)
+	if err != nil {
+		log.Println("error uploading file")
+		return "", err
+	}
+	// ctxUser := &domain.User{ID: 1}
 
 	tx := u.fileRepo.DB().Begin()
 	ctxTx := context.WithValue(ctx, "tx", tx)
 
 	fileUUID := uuid.NewString()
 
-	location, err := uploadFileToS3(&u.s3Client, fileUUID, multiPartFile)
+	location, err := uploadFileToS3(ctx, u.s3Client, fileUUID, multiPartFile)
 	if err != nil {
 		log.Println("error uploadFileToS3: ", err)
 		return "", err
@@ -88,7 +89,7 @@ func (u *UploadUsecase) UploadFile(ctx context.Context, secret string, multiPart
 	return fileAccess.Hash, nil
 }
 
-func uploadFileToS3(s3Client *s3.S3, fileUUID string, fileHeader *multipart.FileHeader) (string, error) {
+func uploadFileToS3(ctx context.Context, s3Client *s3.Client, fileUUID string, fileHeader *multipart.FileHeader) (string, error) {
 
 	openFile, err := fileHeader.Open()
 	if err != nil {
@@ -97,7 +98,7 @@ func uploadFileToS3(s3Client *s3.S3, fileUUID string, fileHeader *multipart.File
 	}
 	defer openFile.Close()
 
-	_, err = s3Client.PutObject(&s3.PutObjectInput{
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:             aws.String(os.Getenv("AWS_BUCKET")),
 		Key:                aws.String(fileUUID),
 		Body:               openFile,
@@ -126,16 +127,17 @@ func (u *UploadUsecase) AccessFile(ctx context.Context, hash string, secret stri
 		return nil, &utils.ErrorType{Type: utils.ValidationErr, Message: "invalid secret!"}
 	}
 
-	file, err := u.fileRepo.FindByUUID(ctx, validAccessFile.Hash)
+	file, err := u.fileRepo.FindByUUID(ctx, validAccessFile.File.UUID)
 	if err != nil {
 		log.Println(err)
 		return nil, &utils.ErrorType{Type: utils.ValidationErr, Message: "file do not exist!"}
 	}
 
-	bufferFile, err := u.s3Client.GetObject(&s3.GetObjectInput{
+	bufferFile, err := u.s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(os.Getenv("AWS_BUCKET")),
 		Key:    aws.String(file.UUID),
 	})
+
 	if err != nil {
 		log.Println(err)
 		return nil, errors.New("error getting file from s3")

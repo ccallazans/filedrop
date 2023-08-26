@@ -4,6 +4,8 @@ import "fmt"
 
 const (
 	ValidationErr = "ValidationErr"
+	AuthenticationErr = "AuthenticationErr"
+	BadRequestErr = "BadRequestErr"
 	InternalErr   = "InternalErr"
 )
 
@@ -13,5 +15,5 @@ type ErrorType struct {
 }
 
 func (e *ErrorType) Error() string {
-	return fmt.Sprintf("%s: %s", e.Type, e.Message)
+	return fmt.Sprintf("%s -> %s", e.Type, e.Message)
 }

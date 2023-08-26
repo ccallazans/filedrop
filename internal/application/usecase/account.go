@@ -29,8 +29,8 @@ func NewAccountUsecase(userRepo repository.UserRepository, fileRepo repository.F
 
 func (a *AccountUsecase) CreateUser(ctx context.Context, email string, password string) error {
 
-	existingUser, err := a.userRepo.FindByEmail(ctx, email)
-	if existingUser != nil {
+	userExists, err := a.userRepo.FindByEmail(ctx, email)
+	if userExists != nil {
 		return &utils.ErrorType{Type: utils.ValidationErr, Message: "email already registered!"}
 	}
 
@@ -48,7 +48,7 @@ func (a *AccountUsecase) CreateUser(ctx context.Context, email string, password 
 
 	err = a.userRepo.Save(ctx, newUser)
 	if err != nil {
-		log.Println("error saving user into database: %s", err.Error())
+		log.Printf("error saving user into database: %s", err.Error())
 		return &utils.ErrorType{Type: utils.InternalErr, Message: err.Error()}
 	}
 
@@ -77,7 +77,7 @@ func (a *AccountUsecase) AuthUser(ctx context.Context, email string, password st
 
 func generateJWT(user *domain.User) (string, error) {
 
-	claims := &auth.JWTClaim{
+	claims := auth.JWTClaim{
 		User: auth.JWTUser{
 			ID:    user.ID,
 			UUID:  user.UUID,
@@ -94,7 +94,7 @@ func generateJWT(user *domain.User) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SIGNING_KEY")))
 	if err != nil {
 		log.Printf("error creating token: %s", err.Error())
 		return "", &utils.ErrorType{Type: utils.InternalErr, Message: err.Error()}

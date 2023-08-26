@@ -26,7 +26,7 @@ func (r *fileAccessRepositoryImpl) DB() *gorm.DB {
 
 func (r *fileAccessRepositoryImpl) FindByHash(ctx context.Context, hash string) (*domain.FileAccess, error) {
 	fileAccess := &domain.FileAccess{}
-	err := r.db.WithContext(ctx).Where("hash = ?", hash).First(fileAccess).Error
+	err := r.db.WithContext(ctx).Preload("File").Where("hash = ?", hash).First(fileAccess).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to find fileAccess by hash: %w", err)
 	}
