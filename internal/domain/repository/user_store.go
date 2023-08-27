@@ -76,7 +76,7 @@ func (r *PostgresUserStore) FindAll(ctx context.Context) []*domain.User {
 func (r *PostgresUserStore) Save(ctx context.Context, user *domain.User) error {
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Save(user).Error
+	err := tx.WithContext(ctx).Preload("Role").Save(user).Error
 	if err != nil {
 		utils.Logger.Errorf("error when save user: %w", err)
 		return err

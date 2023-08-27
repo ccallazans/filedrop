@@ -36,7 +36,7 @@ func (r *PostgresFileStore) FindByID(ctx context.Context, id uint) (*domain.File
 	file := &domain.File{}
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Where("id = ?", id).First(file).Error
+	err := tx.WithContext(ctx).Preload("User").Where("id = ?", id).First(file).Error
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.Logger.Errorf("error when find file by id %d: %w", id, err)
@@ -50,7 +50,7 @@ func (r *PostgresFileStore) FindByID(ctx context.Context, id uint) (*domain.File
 func (r *PostgresFileStore) Save(ctx context.Context, file *domain.File) error {
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Save(file).Error
+	err := tx.WithContext(ctx).Preload("User").Save(file).Error
 	if err != nil {
 		utils.Logger.Errorf("error when save file: %w", err)
 		return err
@@ -63,7 +63,7 @@ func (r *PostgresFileStore) DeleteByID(ctx context.Context, id uint) error {
 	file := &domain.File{}
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Delete(file, id).Error
+	err := tx.WithContext(ctx).Preload("User").Delete(file, id).Error
 	if err != nil {
 		utils.Logger.Errorf("error when delete file by id %d: %w", id, err)
 		return err

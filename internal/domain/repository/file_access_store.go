@@ -67,7 +67,7 @@ func (r *PostgresFileAccessStore) FindByHash(ctx context.Context, hash string) (
 func (r *PostgresFileAccessStore) Save(ctx context.Context, fileAccess *domain.FileAccess) error {
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Save(fileAccess).Error
+	err := tx.WithContext(ctx).Preload("User").Save(fileAccess).Error
 	if err != nil {
 		utils.Logger.Errorf("error when save fileAccess: %w", err)
 		return err

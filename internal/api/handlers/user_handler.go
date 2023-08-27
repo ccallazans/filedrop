@@ -51,7 +51,7 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 		FirstName string    `json:"first_name"`
 		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
-		Role      uint      `json:"role"`
+		Role      string    `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
 	}
 
@@ -61,7 +61,7 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
-		Role:      user.RoleID,
+		Role:      user.Role.Role,
 		CreatedAt: user.CreatedAt,
 	})
 }
@@ -79,7 +79,7 @@ func (h *UserHandler) GetUserByID(c echo.Context) error {
 		FirstName string    `json:"first_name"`
 		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
-		Role      uint      `json:"role"`
+		Role      string      `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
 	}
 
@@ -88,7 +88,7 @@ func (h *UserHandler) GetUserByID(c echo.Context) error {
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
-		Role:      user.RoleID,
+		Role:      user.Role.Role,
 		CreatedAt: user.CreatedAt,
 	})
 }
@@ -105,7 +105,7 @@ func (h *UserHandler) GetAllUsers(c echo.Context) error {
 		FirstName string    `json:"first_name"`
 		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
-		Role      uint      `json:"role"`
+		Role      string      `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
 	}
 
@@ -116,7 +116,7 @@ func (h *UserHandler) GetAllUsers(c echo.Context) error {
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Email:     user.Email,
-			Role:      user.RoleID,
+			Role:      user.Role.Role,
 			CreatedAt: user.CreatedAt,
 		})
 	}
