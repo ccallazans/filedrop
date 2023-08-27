@@ -6,7 +6,6 @@ import (
 
 type File struct {
 	ID        uint
-	UUID      string
 	Filename  string
 	Size      string
 	Location  string
@@ -15,4 +14,13 @@ type File struct {
 	UpdatedAt time.Time
 
 	User User
+}
+
+func NewFile(filename string, size string, location string, userID uint) *File {
+	return &File{
+		Filename: filename,
+		Size:     size,
+		Location: location,
+		UserID:   userID,
+	}
 }

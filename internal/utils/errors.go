@@ -1,19 +1,65 @@
 package utils
 
-import "fmt"
-
-const (
-	ValidationErr = "ValidationErr"
-	AuthenticationErr = "AuthenticationErr"
-	BadRequestErr = "BadRequestErr"
-	InternalErr   = "InternalErr"
-)
-
-type ErrorType struct {
-	Type    string
+type AuthenticationError struct {
 	Message string
 }
 
-func (e *ErrorType) Error() string {
-	return fmt.Sprintf("%s -> %s", e.Type, e.Message)
+type AuthorizationError struct {
+	Message string
+}
+
+type BadRequestError struct {
+	Message string
+}
+
+type ValidationError struct {
+	Message string
+}
+
+type ConflictError struct {
+	Message string
+}
+
+type NoContentError struct {
+	Message string
+}
+
+type NotFoundError struct {
+	Message string
+}
+
+type InternalError struct {
+	Message string
+}
+
+func (v *AuthenticationError) Error() string {
+	return v.Message
+}
+
+func (v *AuthorizationError) Error() string {
+	return v.Message
+}
+
+func (v *BadRequestError) Error() string {
+	return v.Message
+}
+
+func (v *ValidationError) Error() string {
+	return v.Message
+}
+
+func (v *ConflictError) Error() string {
+	return v.Message
+}
+
+func (v *NoContentError) Error() string {
+	return v.Message
+}
+
+func (v *NotFoundError) Error() string {
+	return v.Message
+}
+
+func (v *InternalError) Error() string {
+	return v.Message
 }

@@ -16,3 +16,11 @@ type FileAccess struct {
 func (FileAccess) TableName() string {
 	return "file_access"
 }
+
+func NewFileAccess(hash string, secret string, fileID uint) *FileAccess {
+	return &FileAccess{
+		Hash:   hash,
+		Secret: secret,
+		FileID: fileID,
+	}
+}

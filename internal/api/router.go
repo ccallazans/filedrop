@@ -9,7 +9,9 @@ import (
 	"github.com/ccallazans/filedrop/internal/api/handlers"
 	"github.com/ccallazans/filedrop/internal/api/middlewares"
 	"github.com/ccallazans/filedrop/internal/application/usecase"
-	repository "github.com/ccallazans/filedrop/internal/domain/repository/impl"
+	"github.com/ccallazans/filedrop/internal/domain"
+	"github.com/ccallazans/filedrop/internal/domain/repository"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
@@ -19,10 +21,11 @@ import (
 func NewRouter(db *gorm.DB) *echo.Echo {
 
 	// Repositories
-	userRepository := repository.NewUserRepository(db)
-	fileRepository := repository.NewFileRepository(db)
-	fileAccessRepository := repository.NewFileAccessRepository(db)
+	userStore := repository.NewPostgresUserStore(db)
+	fileStore := repository.NewPostgresFileStore(db)
+	fileAccessStore := repository.NewPostgresFileAccessStore(db)
 
+	// S3Client
 	cfg := aws.Config{
 		Region: os.Getenv("AWS_REGION"),
 		Credentials: credentials.NewStaticCredentialsProvider(
@@ -34,13 +37,14 @@ func NewRouter(db *gorm.DB) *echo.Echo {
 	s3client := s3.NewFromConfig(cfg)
 
 	// Usecases
-	accountUsecase := usecase.NewAccountUsecase(userRepository, fileRepository)
-	uploadUsecase := usecase.NewUploadUsecase(fileRepository, fileAccessRepository, userRepository, s3client)
+	authUsecase := usecase.NewAuthUsecase(userStore)
+	userUsecase := usecase.NewUserUsecase(userStore, fileStore)
+	fileUsecase := usecase.NewFileUsecase(fileStore, fileAccessStore, userStore, s3client)
 
 	// Handlers
-	authHandler := handlers.NewAuthHandler(accountUsecase)
-	// accountHandler := handler.NewAccountHandler(accountUsecase)
-	uploadHandler := handlers.NewUploadHandler(uploadUsecase)
+	authHandler := handlers.NewAuthHandler(*authUsecase)
+	userHandler := handlers.NewUserHandler(*userUsecase)
+	uploadHandler := handlers.NewFileHandler(*fileUsecase)
 
 	// Default
 	e := echo.New()
@@ -52,16 +56,18 @@ func NewRouter(db *gorm.DB) *echo.Echo {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	// accountGroup := e.Group("/account")
-	// accountGroup.POST("")
+	authGroup := e.Group("/auth")
+	authGroup.POST("/", authHandler.Signin)
+
+	userGroup := e.Group("/users")
+	userGroup.POST("/", userHandler.CreateUser)
+	userGroup.GET("/", middlewares.AuthenticationMiddleware(userHandler.GetAllUsers, []int{domain.ADMIN}))
+	userGroup.GET("/:id", middlewares.AuthenticationMiddleware(userHandler.GetUserByID, []int{domain.ADMIN}))
+	userGroup.DELETE("/:id", middlewares.AuthenticationMiddleware(userHandler.DeleteUserByID, []int{domain.ADMIN}))
 
 	fileGroup := e.Group("/file")
-	fileGroup.POST("/upload", middlewares.AuthenticationMiddleware(uploadHandler.UploadFile))
-	fileGroup.POST("/download", middlewares.AuthenticationMiddleware(uploadHandler.AccessFile))
-
-	authGroup := e.Group("/auth")
-	authGroup.POST("/register", authHandler.Register)
-	authGroup.POST("/signin", authHandler.Signin)
+	fileGroup.POST("/upload", middlewares.AuthenticationMiddleware(uploadHandler.UploadFile, []int{}))
+	fileGroup.POST("/download", middlewares.AuthenticationMiddleware(uploadHandler.AccessFile, []int{}))
 
 	return e
 }

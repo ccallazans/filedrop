@@ -12,17 +12,17 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type UploadHandler struct {
-	uploadUsecase usecase.UploadUsecase
+type FileHandler struct {
+	fileUsecase usecase.FileUsecase
 }
 
-func NewUploadHandler(uploadUsecase usecase.UploadUsecase) *UploadHandler {
-	return &UploadHandler{
-		uploadUsecase: uploadUsecase,
+func NewFileHandler(fileUsecase usecase.FileUsecase) *FileHandler {
+	return &FileHandler{
+		fileUsecase: fileUsecase,
 	}
 }
 
-func (h *UploadHandler) UploadFile(c echo.Context) error {
+func (h *FileHandler) UploadFile(c echo.Context) error {
 
 	type UploadFileRequest struct {
 		Secret string                `form:"secret" validate:"omitempty"`
@@ -32,20 +32,20 @@ func (h *UploadHandler) UploadFile(c echo.Context) error {
 	var request UploadFileRequest
 	err := c.Bind(&request)
 	if err != nil {
-		return ParseApiError(&utils.ErrorType{Type: utils.BadRequestErr, Message: err.Error()})
+		return ParseApiError(&utils.BadRequestError{})
 	}
 
 	request.File, err = c.FormFile("file")
 	if err != nil {
-		return ParseApiError(&utils.ErrorType{Type: utils.BadRequestErr, Message: err.Error()})
+		return ParseApiError(&utils.BadRequestError{})
 	}
 
 	err = validator.New().Struct(request)
 	if err != nil {
-		return ParseApiError(&utils.ErrorType{Type: utils.BadRequestErr, Message: err.Error()})
+		return ParseApiError(&utils.BadRequestError{})
 	}
 
-	hash, err := h.uploadUsecase.UploadFile(c.Request().Context(), request.Secret, request.File)
+	hash, err := h.fileUsecase.UploadFile(c.Request().Context(), request.Secret, request.File)
 	if err != nil {
 		return ParseApiError(err)
 	}
@@ -54,10 +54,11 @@ func (h *UploadHandler) UploadFile(c echo.Context) error {
 		Hash string `json:"hash"`
 	}
 
+	c.Response().Header().Set("Location", fmt.Sprintf("/file/download/%s", hash))
 	return c.JSON(http.StatusCreated, UploadFileResponse{hash})
 }
 
-func (h *UploadHandler) AccessFile(c echo.Context) error {
+func (h *FileHandler) AccessFile(c echo.Context) error {
 
 	type AccessFileRequest struct {
 		Hash   string `json:"hash" validate:"required"`
@@ -67,15 +68,15 @@ func (h *UploadHandler) AccessFile(c echo.Context) error {
 	var request AccessFileRequest
 	err := c.Bind(&request)
 	if err != nil {
-		return ParseApiError(&utils.ErrorType{Type: utils.BadRequestErr, Message: err.Error()})
+		return ParseApiError(&utils.ValidationError{Message: "bad request"})
 	}
 
 	err = validator.New().Struct(request)
 	if err != nil {
-		return ParseApiError(&utils.ErrorType{Type: utils.BadRequestErr, Message: err.Error()})
+		return ParseApiError(&utils.ValidationError{Message: "bad request"})
 	}
 
-	file, err := h.uploadUsecase.AccessFile(c.Request().Context(), request.Hash, request.Secret)
+	file, err := h.fileUsecase.DownloadFile(c.Request().Context(), request.Hash, request.Secret)
 	if err != nil {
 		return ParseApiError(err)
 	}
@@ -83,6 +84,7 @@ func (h *UploadHandler) AccessFile(c echo.Context) error {
 
 	c.Response().Header().Set("Content-Type", *file.ContentType)
 	c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", file.ContentLength))
+	c.Response().Header().Set("Content-Disposition", "attachment;")
 	io.Copy(c.Response().Writer, file.Body)
 
 	return nil

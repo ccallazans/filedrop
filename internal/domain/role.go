@@ -1,8 +1,8 @@
 package domain
 
 const (
-	ADMIN = 2
-	USER = 1
+	ADMIN = 1
+	USER = 2
 )
 
 type Role struct {

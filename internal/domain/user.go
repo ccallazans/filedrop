@@ -6,7 +6,8 @@ import (
 
 type User struct {
 	ID        uint
-	UUID      string
+	FirstName string
+	LastName  string
 	Email     string
 	Password  string
 	RoleID    uint
@@ -14,4 +15,14 @@ type User struct {
 	UpdatedAt time.Time
 
 	Role Role
+}
+
+func NewUser(firstName string, lastName string, email string, password string) *User {
+	return &User{
+		FirstName: firstName,
+		LastName:  lastName,
+		Email:     email,
+		Password:  password,
+		RoleID:    USER,
+	}
 }

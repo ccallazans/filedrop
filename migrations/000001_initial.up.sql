@@ -9,7 +9,8 @@ insert into roles(role) values ('ADMIN'), ('USER');
 
 create table if not exists users (
     id serial not null,
-    uuid uuid unique not null,
+    first_name varchar(255) not null,
+    last_name varchar(255) not null,
     email varchar(255) unique not null,
     password varchar(255) not null,
     role_id serial not null,
@@ -22,7 +23,6 @@ create table if not exists users (
 
 create table if not exists files (
     id serial not null,
-    uuid uuid unique not null,
     filename varchar(255) not null,
     size varchar(255) not null,
     location varchar(255) not null,

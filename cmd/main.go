@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ccallazans/filedrop/internal/api"
+	"github.com/ccallazans/filedrop/internal/utils"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -21,6 +22,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	utils.NewLogger()
 
 	router := api.NewRouter(pgdb)
 	router.Start(":8080")

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/ccallazans/filedrop/internal/utils"
 	"github.com/labstack/echo/v4"
@@ -15,51 +14,90 @@ type ErrorResponse struct {
 }
 
 func ParseApiError(err error) error {
-	errorMessage := err.Error()
-	types := strings.Split(errorMessage, " -> ")
 
-	if len(types) != 2 {
-		return echo.NewHTTPError(
-			http.StatusInternalServerError,
-			ErrorResponse{
-				Status: http.StatusInternalServerError,
-				Title:  "Internal server error",
-				Detail: errorMessage,
-			})
-	}
-
-	switch types[0] {
-	case utils.AuthenticationErr:
+	switch err.(type) {
+	case *utils.AuthenticationError:
 		return echo.NewHTTPError(
 			http.StatusUnauthorized,
 			ErrorResponse{
 				Status: http.StatusUnauthorized,
 				Title:  "Unauthorized",
-				Detail: types[1],
+				Detail: err.Error(),
 			})
-	case utils.BadRequestErr:
+	case *utils.AuthorizationError:
+		return echo.NewHTTPError(
+			http.StatusForbidden,
+			ErrorResponse{
+				Status: http.StatusForbidden,
+				Title:  "Forbidden",
+				Detail: err.Error(),
+			})
+
+	//
+
+	case *utils.BadRequestError:
+		message := err.Error()
+		if len(message) == 0 {
+			message = "bad request"
+		}
+
 		return echo.NewHTTPError(
 			http.StatusBadRequest,
 			ErrorResponse{
 				Status: http.StatusBadRequest,
 				Title:  "Bad Request",
-				Detail: types[1],
+				Detail: message,
 			})
-	case utils.ValidationErr:
+	case *utils.ValidationError:
 		return echo.NewHTTPError(
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 			ErrorResponse{
-				Status: http.StatusBadRequest,
-				Title:  "Bad Request",
-				Detail: types[1],
+				Status: http.StatusUnprocessableEntity,
+				Title:  "Unprocessable Entity",
+				Detail: err.Error(),
 			})
-	case utils.InternalErr:
+	case *utils.ConflictError:
+		return echo.NewHTTPError(
+			http.StatusConflict,
+			ErrorResponse{
+				Status: http.StatusConflict,
+				Title:  "Conflict",
+				Detail: err.Error(),
+			})
+
+	//
+
+	case *utils.NoContentError:
+		return echo.NewHTTPError(
+			http.StatusNoContent,
+			ErrorResponse{
+				Status: http.StatusNoContent,
+				Title:  "No Content",
+				Detail: err.Error(),
+			})
+	case *utils.NotFoundError:
+		return echo.NewHTTPError(
+			http.StatusNotFound,
+			ErrorResponse{
+				Status: http.StatusNotFound,
+				Title:  "Not Found",
+				Detail: err.Error(),
+			})
+
+	//
+
+	case *utils.InternalError:
+		message := err.Error()
+		if len(message) == 0 {
+			message = "internal server error"
+		}
+
 		return echo.NewHTTPError(
 			http.StatusInternalServerError,
 			ErrorResponse{
 				Status: http.StatusInternalServerError,
 				Title:  "Internal server error",
-				Detail: types[1],
+				Detail: message,
 			})
 	default:
 		return echo.NewHTTPError(
@@ -67,7 +105,7 @@ func ParseApiError(err error) error {
 			ErrorResponse{
 				Status: http.StatusInternalServerError,
 				Title:  "Internal server error",
-				Detail: errorMessage,
+				Detail: err.Error(),
 			})
 	}
 }
