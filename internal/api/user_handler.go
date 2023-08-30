@@ -1,28 +1,16 @@
-package handlers
+package api
 
 import (
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/ccallazans/filedrop/internal/application/usecase"
 	"github.com/ccallazans/filedrop/internal/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 )
 
-type UserHandler struct {
-	userUsecase usecase.UserUsecase
-}
-
-func NewUserHandler(userUsecase usecase.UserUsecase) *UserHandler {
-	return &UserHandler{
-		userUsecase: userUsecase,
-	}
-}
-
-func (h *UserHandler) CreateUser(c echo.Context) error {
-
+func (a *api) CreateUser(c echo.Context) error {
 	type CreateUserRequest struct {
 		FirstName string `json:"first_name" validate:"required"`
 		LastName  string `json:"last_name" validate:"required"`
@@ -33,17 +21,17 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 	var request CreateUserRequest
 	err := c.Bind(&request)
 	if err != nil {
-		return ParseApiError(&utils.ValidationError{Message: "bad request"})
+		return &utils.ValidationError{Message: "bad request"}
 	}
 
 	err = validator.New().Struct(request)
 	if err != nil {
-		return ParseApiError(&utils.ValidationError{Message: "bad request"})
+		return &utils.ValidationError{Message: "bad request"}
 	}
 
-	user, err := h.userUsecase.CreateUser(c.Request().Context(), request.FirstName, request.LastName, request.Email, request.Password)
+	user, err := a.userUsecase.CreateUser(c.Request().Context(), request.FirstName, request.LastName, request.Email, request.Password)
 	if err != nil {
-		return ParseApiError(err)
+		return err
 	}
 
 	type CreateUserResponse struct {
@@ -66,12 +54,12 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 	})
 }
 
-func (h *UserHandler) GetUserByID(c echo.Context) error {
+func (a *api) GetUserByID(c echo.Context) error {
 	id := c.Param("id")
 
-	user, err := h.userUsecase.GetUserByID(c.Request().Context(), id)
+	user, err := a.userUsecase.GetUserByID(c.Request().Context(), id)
 	if err != nil {
-		return ParseApiError(err)
+		return err
 	}
 
 	type GetUserByIDResponse struct {
@@ -79,7 +67,7 @@ func (h *UserHandler) GetUserByID(c echo.Context) error {
 		FirstName string    `json:"first_name"`
 		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
-		Role      string      `json:"role"`
+		Role      string    `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
 	}
 
@@ -93,9 +81,8 @@ func (h *UserHandler) GetUserByID(c echo.Context) error {
 	})
 }
 
-func (h *UserHandler) GetAllUsers(c echo.Context) error {
-
-	users, err := h.userUsecase.GetAllUsers(c.Request().Context())
+func (a *api) GetAllUsers(c echo.Context) error {
+	users, err := a.userUsecase.GetAllUsers(c.Request().Context())
 	if err != nil {
 		c.NoContent(http.StatusNoContent)
 	}
@@ -105,7 +92,7 @@ func (h *UserHandler) GetAllUsers(c echo.Context) error {
 		FirstName string    `json:"first_name"`
 		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
-		Role      string      `json:"role"`
+		Role      string    `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
 	}
 
@@ -124,12 +111,12 @@ func (h *UserHandler) GetAllUsers(c echo.Context) error {
 	return c.JSON(http.StatusOK, usersResponse)
 }
 
-func (h *UserHandler) DeleteUserByID(c echo.Context) error {
+func (a *api) DeleteUserByID(c echo.Context) error {
 	id := c.Param("id")
 
-	err := h.userUsecase.DeleteUserByID(c.Request().Context(), id)
+	err := a.userUsecase.DeleteUserByID(c.Request().Context(), id)
 	if err != nil {
-		return ParseApiError(err)
+		return err
 	}
 
 	return c.NoContent(http.StatusOK)

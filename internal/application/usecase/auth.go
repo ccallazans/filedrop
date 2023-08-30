@@ -37,7 +37,6 @@ func NewAuthUsecase(userStore repository.UserStore) *AuthUsecase {
 }
 
 func (u *AuthUsecase) AuthUser(ctx context.Context, email string, password string) (string, error) {
-
 	validUser, err := u.userStore.FindByEmail(ctx, email)
 	if err != nil {
 		return "", &utils.NotFoundError{Message: "user does not exist"}
@@ -57,7 +56,6 @@ func (u *AuthUsecase) AuthUser(ctx context.Context, email string, password strin
 }
 
 func generateJWT(user *domain.User) (string, error) {
-
 	claims := JWTClaim{
 		User: JWTUser{
 			ID:        user.ID,
@@ -78,8 +76,8 @@ func generateJWT(user *domain.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SIGNING_KEY")))
 	if err != nil {
-		utils.Logger.Error("cannot sign jwt, error: %w", err)
-		return "", &utils.InternalError{}
+		// utils.Logger.Error("cannot sign jwt, error: %w", err)
+		return "", err
 	}
 
 	return tokenString, nil

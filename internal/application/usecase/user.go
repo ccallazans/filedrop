@@ -23,7 +23,6 @@ func NewUserUsecase(userStore repository.UserStore, fileStore repository.FileSto
 }
 
 func (u *UserUsecase) CreateUser(ctx context.Context, firstName string, lastName string, email string, password string) (*domain.User, error) {
-
 	userExists, _ := u.userStore.FindByEmail(ctx, email)
 	if userExists != nil {
 		return nil, &utils.ConflictError{Message: "email already registered"}
@@ -38,17 +37,16 @@ func (u *UserUsecase) CreateUser(ctx context.Context, firstName string, lastName
 
 	err = u.userStore.Save(ctx, newUser)
 	if err != nil {
-		return nil, &utils.InternalError{}
+		return nil, err
 	}
 
 	return newUser, nil
 }
 
 func (u *UserUsecase) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
-
 	parseID, err := strconv.ParseUint(id, 10, 0)
 	if err != nil {
-		utils.Logger.Infof("error when parse id %s to uint", id)
+		// utils.Logger.Infof("error when parse id %s to uint", id)
 		return nil, &utils.BadRequestError{Message: "id should be an integer"}
 	}
 
@@ -62,18 +60,13 @@ func (u *UserUsecase) GetUserByID(ctx context.Context, id string) (*domain.User,
 
 func (u *UserUsecase) GetAllUsers(ctx context.Context) ([]*domain.User, error) {
 	users := u.userStore.FindAll(ctx)
-
-	if len(users) == 0 {
-		return nil, &utils.NoContentError{Message: "no users found"}
-	}
-
 	return users, nil
 }
 
 func (u *UserUsecase) DeleteUserByID(ctx context.Context, id string) error {
 	parseID, err := strconv.ParseUint(id, 10, 0)
 	if err != nil {
-		utils.Logger.Infof("error when parse id %s to uint", id)
+		// utils.Logger.Infof("error when parse id %s to uint", id)
 		return &utils.BadRequestError{Message: "id should be an integer"}
 	}
 
@@ -84,7 +77,7 @@ func (u *UserUsecase) DeleteUserByID(ctx context.Context, id string) error {
 
 	err = u.userStore.DeleteByID(ctx, uint(parseID))
 	if err != nil {
-		return &utils.InternalError{}
+		return err
 	}
 
 	return nil
@@ -93,8 +86,8 @@ func (u *UserUsecase) DeleteUserByID(ctx context.Context, id string) error {
 func hashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		utils.Logger.Errorf("error when generate bycrypt hash: %w", err)
-		return "", &utils.InternalError{}
+		// utils.Logger.Errorf("error when generate bycrypt hash: %w", err)
+		return "", err
 	}
 
 	return string(hashedPassword), nil

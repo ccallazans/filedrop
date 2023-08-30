@@ -2,10 +2,8 @@ package repository
 
 import (
 	"context"
-	"errors"
 
 	"github.com/ccallazans/filedrop/internal/domain"
-	"github.com/ccallazans/filedrop/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -24,7 +22,7 @@ type PostgresFileAccessStore struct {
 	db *gorm.DB
 }
 
-func NewPostgresFileAccessStore(db *gorm.DB) *PostgresFileAccessStore {
+func NewPostgresFileAccessStore(db *gorm.DB) FileAccessStore {
 	return &PostgresFileAccessStore{
 		db: db,
 	}
@@ -40,9 +38,6 @@ func (r *PostgresFileAccessStore) FindByID(ctx context.Context, id uint) (*domai
 	tx := HasTransaction(ctx, r.db)
 	err := tx.WithContext(ctx).Preload("File").Where("id = ?", id).First(fileAccess).Error
 	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			utils.Logger.Errorf("error when find fileAccess by id %d: %w", id, err)
-		}
 		return nil, err
 	}
 
@@ -55,9 +50,6 @@ func (r *PostgresFileAccessStore) FindByHash(ctx context.Context, hash string) (
 	tx := HasTransaction(ctx, r.db)
 	err := tx.WithContext(ctx).Preload("File").Where("hash = ?", hash).First(fileAccess).Error
 	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			utils.Logger.Errorf("error when find fileAccess by hash %s: %w", hash, err)
-		}
 		return nil, err
 	}
 
@@ -65,11 +57,9 @@ func (r *PostgresFileAccessStore) FindByHash(ctx context.Context, hash string) (
 }
 
 func (r *PostgresFileAccessStore) Save(ctx context.Context, fileAccess *domain.FileAccess) error {
-
 	tx := HasTransaction(ctx, r.db)
 	err := tx.WithContext(ctx).Preload("User").Save(fileAccess).Error
 	if err != nil {
-		utils.Logger.Errorf("error when save fileAccess: %w", err)
 		return err
 	}
 
@@ -82,7 +72,6 @@ func (r *PostgresFileAccessStore) DeleteByID(ctx context.Context, id uint) error
 	tx := HasTransaction(ctx, r.db)
 	err := tx.WithContext(ctx).Delete(fileAccess, id).Error
 	if err != nil {
-		utils.Logger.Errorf("error when delete fileAccess by id %d: %w", id, err)
 		return err
 	}
 

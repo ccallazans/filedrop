@@ -2,10 +2,8 @@ package repository
 
 import (
 	"context"
-	"errors"
 
 	"github.com/ccallazans/filedrop/internal/domain"
-	"github.com/ccallazans/filedrop/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -24,7 +22,7 @@ type PostgresUserStore struct {
 	db *gorm.DB
 }
 
-func NewPostgresUserStore(db *gorm.DB) *PostgresUserStore {
+func NewPostgresUserStore(db *gorm.DB) UserStore {
 	return &PostgresUserStore{
 		db: db,
 	}
@@ -40,9 +38,6 @@ func (r *PostgresUserStore) FindByID(ctx context.Context, id uint) (*domain.User
 	tx := HasTransaction(ctx, r.db)
 	err := tx.WithContext(ctx).Preload("Role").Where("id = ?", id).First(user).Error
 	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			utils.Logger.Errorf("error when find user by id %d: %w", id, err)
-		}
 		return nil, err
 	}
 
@@ -55,9 +50,6 @@ func (r *PostgresUserStore) FindByEmail(ctx context.Context, email string) (*dom
 	tx := HasTransaction(ctx, r.db)
 	err := tx.WithContext(ctx).Preload("Role").Where("email = ?", email).First(user).Error
 	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			utils.Logger.Errorf("error when find user by email %s: %w", email, err)
-		}
 		return nil, err
 	}
 
@@ -74,11 +66,9 @@ func (r *PostgresUserStore) FindAll(ctx context.Context) []*domain.User {
 }
 
 func (r *PostgresUserStore) Save(ctx context.Context, user *domain.User) error {
-
 	tx := HasTransaction(ctx, r.db)
 	err := tx.WithContext(ctx).Preload("Role").Save(user).Error
 	if err != nil {
-		utils.Logger.Errorf("error when save user: %w", err)
 		return err
 	}
 
@@ -91,7 +81,6 @@ func (r *PostgresUserStore) DeleteByID(ctx context.Context, id uint) error {
 	tx := HasTransaction(ctx, r.db)
 	err := tx.WithContext(ctx).Delete(user, id).Error
 	if err != nil {
-		utils.Logger.Errorf("error when delete user by id %d: %w", id, err)
 		return err
 	}
 

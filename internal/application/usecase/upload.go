@@ -38,7 +38,6 @@ func NewFileUsecase(fileStore repository.FileStore, fileAccessStore repository.F
 }
 
 func (u *FileUsecase) UploadFile(ctx context.Context, secret string, multiPartFile *multipart.FileHeader) (string, error) {
-
 	ctxUser, err := GetContextUser(ctx)
 	if err != nil {
 		return "", err
@@ -57,7 +56,7 @@ func (u *FileUsecase) UploadFile(ctx context.Context, secret string, multiPartFi
 	err = u.fileStore.Save(ctxTx, file)
 	if err != nil {
 		tx.Rollback()
-		return "", &utils.InternalError{}
+		return "", err
 	}
 
 	fileAccess := domain.NewFileAccess(generateRandomHash(5), secret, file.ID)
@@ -65,7 +64,7 @@ func (u *FileUsecase) UploadFile(ctx context.Context, secret string, multiPartFi
 	err = u.fileAccessStore.Save(ctxTx, fileAccess)
 	if err != nil {
 		tx.Rollback()
-		return "", &utils.InternalError{}
+		return "", err
 	}
 
 	tx.Commit()
@@ -74,7 +73,6 @@ func (u *FileUsecase) UploadFile(ctx context.Context, secret string, multiPartFi
 }
 
 func (u *FileUsecase) DownloadFile(ctx context.Context, hash string, secret string) (*s3.GetObjectOutput, error) {
-
 	validAccessFile, err := u.fileAccessStore.FindByHash(ctx, hash)
 	if err != nil {
 		return nil, &utils.NotFoundError{Message: "hash access does not exist"}
@@ -86,8 +84,8 @@ func (u *FileUsecase) DownloadFile(ctx context.Context, hash string, secret stri
 
 	file, err := u.fileStore.FindByID(ctx, validAccessFile.FileID)
 	if err != nil {
-		utils.Logger.Errorf("error when find file id %d do not exists for hash %s:", validAccessFile.FileID, hash)
-		return nil, &utils.InternalError{}
+		// utils.Logger.Errorf("error when find file id %d do not exists for hash %s:", validAccessFile.FileID, hash)
+		return nil, err
 	}
 
 	bufferFile, err := u.s3Client.GetObject(ctx, &s3.GetObjectInput{
@@ -95,19 +93,18 @@ func (u *FileUsecase) DownloadFile(ctx context.Context, hash string, secret stri
 		Key:    aws.String(strings.Split(file.Location, "/")[1]),
 	})
 	if err != nil {
-		utils.Logger.Errorf("error when get object %s from s3 bucket for hash %s", strings.Split(file.Location, "/")[1], hash)
-		return nil, &utils.InternalError{}
+		// utils.Logger.Errorf("error when get object %s from s3 bucket for hash %s", strings.Split(file.Location, "/")[1], hash)
+		return nil, err
 	}
 
 	return bufferFile, nil
 }
 
 func uploadFileToS3(ctx context.Context, s3Client *s3.Client, fileHeader *multipart.FileHeader) (string, error) {
-
 	openFile, err := fileHeader.Open()
 	if err != nil {
-		utils.Logger.Errorf("error when open multipartfile: %w", err)
-		return "", &utils.InternalError{}
+		// utils.Logger.Errorf("error when open multipartfile: %w", err)
+		return "", err
 	}
 	defer openFile.Close()
 
@@ -120,8 +117,8 @@ func uploadFileToS3(ctx context.Context, s3Client *s3.Client, fileHeader *multip
 		ContentDisposition: aws.String("attachment"),
 	})
 	if err != nil {
-		utils.Logger.Errorf("error when put object into s3 bucket: %w", err)
-		return "", &utils.InternalError{}
+		// utils.Logger.Errorf("error when put object into s3 bucket: %w", err)
+		return "", err
 	}
 
 	location := fmt.Sprintf("%s/%s", os.Getenv("AWS_BUCKET"), key)
@@ -130,9 +127,10 @@ func uploadFileToS3(ctx context.Context, s3Client *s3.Client, fileHeader *multip
 }
 
 func generateRandomHash(length int) string {
-
-	characters := []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-		"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
+	characters := []string{
+		"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+		"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+	}
 
 	hash := ""
 	for i := 0; i < length; i++ {

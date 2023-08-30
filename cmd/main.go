@@ -5,14 +5,16 @@ import (
 	"os"
 
 	"github.com/ccallazans/filedrop/internal/api"
-	"github.com/ccallazans/filedrop/internal/utils"
+	"github.com/ccallazans/filedrop/internal/config"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func main() {
+var Lugu *zap.Logger
 
+func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -23,8 +25,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	utils.NewLogger()
+	api := api.NewApi(config.NewLogger("api"), pgdb)
 
-	router := api.NewRouter(pgdb)
-	router.Start(":8080")
+	router := api.Routes()
+	err = router.Start(":8081")
+	if err != nil {
+		log.Fatal(err)
+	}
 }

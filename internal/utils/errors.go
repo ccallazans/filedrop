@@ -20,15 +20,7 @@ type ConflictError struct {
 	Message string
 }
 
-type NoContentError struct {
-	Message string
-}
-
 type NotFoundError struct {
-	Message string
-}
-
-type InternalError struct {
 	Message string
 }
 
@@ -52,14 +44,6 @@ func (v *ConflictError) Error() string {
 	return v.Message
 }
 
-func (v *NoContentError) Error() string {
-	return v.Message
-}
-
 func (v *NotFoundError) Error() string {
-	return v.Message
-}
-
-func (v *InternalError) Error() string {
 	return v.Message
 }
