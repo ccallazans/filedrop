@@ -15,10 +15,9 @@ type User struct {
 	Email     string `validate:"required,email"`
 	Password  string `validate:"required,gte=6,lte=255"`
 	RoleID    uint   `validate:"required"`
+	Role      Role
 	CreatedAt time.Time
 	UpdatedAt time.Time
-
-	Role Role
 }
 
 func NewUser(firstName string, lastName string, email string, password string) (*User, error) {

@@ -7,10 +7,9 @@ type FileAccess struct {
 	Hash      string
 	Secret    string
 	FileID    uint
+	File      File
 	CreatedAt time.Time
 	UpdatedAt time.Time
-
-	File File
 }
 
 func (FileAccess) TableName() string {

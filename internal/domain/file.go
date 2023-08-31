@@ -10,10 +10,9 @@ type File struct {
 	Size      string
 	Location  string
 	UserID    uint
+	User      User
 	CreatedAt time.Time
 	UpdatedAt time.Time
-
-	User User
 }
 
 func NewFile(filename string, size string, location string, userID uint) *File {
