@@ -84,7 +84,6 @@ func (u *FileUsecase) DownloadFile(ctx context.Context, hash string, secret stri
 
 	file, err := u.fileStore.FindByID(ctx, validAccessFile.FileID)
 	if err != nil {
-		// utils.Logger.Errorf("error when find file id %d do not exists for hash %s:", validAccessFile.FileID, hash)
 		return nil, err
 	}
 
@@ -93,7 +92,6 @@ func (u *FileUsecase) DownloadFile(ctx context.Context, hash string, secret stri
 		Key:    aws.String(strings.Split(file.Location, "/")[1]),
 	})
 	if err != nil {
-		// utils.Logger.Errorf("error when get object %s from s3 bucket for hash %s", strings.Split(file.Location, "/")[1], hash)
 		return nil, err
 	}
 
@@ -103,7 +101,6 @@ func (u *FileUsecase) DownloadFile(ctx context.Context, hash string, secret stri
 func uploadFileToS3(ctx context.Context, s3Client *s3.Client, fileHeader *multipart.FileHeader) (string, error) {
 	openFile, err := fileHeader.Open()
 	if err != nil {
-		// utils.Logger.Errorf("error when open multipartfile: %w", err)
 		return "", err
 	}
 	defer openFile.Close()
@@ -117,7 +114,6 @@ func uploadFileToS3(ctx context.Context, s3Client *s3.Client, fileHeader *multip
 		ContentDisposition: aws.String("attachment"),
 	})
 	if err != nil {
-		// utils.Logger.Errorf("error when put object into s3 bucket: %w", err)
 		return "", err
 	}
 

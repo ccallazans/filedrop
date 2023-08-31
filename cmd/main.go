@@ -28,7 +28,7 @@ func main() {
 	api := api.NewApi(config.NewLogger("api"), pgdb)
 
 	router := api.Routes()
-	err = router.Start(":8081")
+	err = router.Start(":8080")
 	if err != nil {
 		log.Fatal(err)
 	}

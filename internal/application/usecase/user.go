@@ -7,7 +7,6 @@ import (
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/ccallazans/filedrop/internal/domain/repository"
 	"github.com/ccallazans/filedrop/internal/utils"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UserUsecase struct {
@@ -28,12 +27,10 @@ func (u *UserUsecase) CreateUser(ctx context.Context, firstName string, lastName
 		return nil, &utils.ConflictError{Message: "email already registered"}
 	}
 
-	hashedPassword, err := hashPassword(password)
+	newUser, err := domain.NewUser(firstName, lastName, email, password)
 	if err != nil {
 		return nil, err
 	}
-
-	newUser := domain.NewUser(firstName, lastName, email, hashedPassword)
 
 	err = u.userStore.Save(ctx, newUser)
 	if err != nil {
@@ -46,7 +43,6 @@ func (u *UserUsecase) CreateUser(ctx context.Context, firstName string, lastName
 func (u *UserUsecase) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
 	parseID, err := strconv.ParseUint(id, 10, 0)
 	if err != nil {
-		// utils.Logger.Infof("error when parse id %s to uint", id)
 		return nil, &utils.BadRequestError{Message: "id should be an integer"}
 	}
 
@@ -66,7 +62,6 @@ func (u *UserUsecase) GetAllUsers(ctx context.Context) ([]*domain.User, error) {
 func (u *UserUsecase) DeleteUserByID(ctx context.Context, id string) error {
 	parseID, err := strconv.ParseUint(id, 10, 0)
 	if err != nil {
-		// utils.Logger.Infof("error when parse id %s to uint", id)
 		return &utils.BadRequestError{Message: "id should be an integer"}
 	}
 
@@ -81,14 +76,4 @@ func (u *UserUsecase) DeleteUserByID(ctx context.Context, id string) error {
 	}
 
 	return nil
-}
-
-func hashPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		// utils.Logger.Errorf("error when generate bycrypt hash: %w", err)
-		return "", err
-	}
-
-	return string(hashedPassword), nil
 }

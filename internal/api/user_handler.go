@@ -39,7 +39,7 @@ func (a *api) CreateUser(c echo.Context) error {
 		FirstName string    `json:"first_name"`
 		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
-		Role      string    `json:"role"`
+		Role      uint      `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
 	}
 
@@ -49,7 +49,7 @@ func (a *api) CreateUser(c echo.Context) error {
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
-		Role:      user.Role.Role,
+		Role:      user.RoleID,
 		CreatedAt: user.CreatedAt,
 	})
 }
@@ -67,7 +67,7 @@ func (a *api) GetUserByID(c echo.Context) error {
 		FirstName string    `json:"first_name"`
 		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
-		Role      string    `json:"role"`
+		Role      uint      `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
 	}
 
@@ -76,7 +76,7 @@ func (a *api) GetUserByID(c echo.Context) error {
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
-		Role:      user.Role.Role,
+		Role:      user.RoleID,
 		CreatedAt: user.CreatedAt,
 	})
 }
@@ -92,7 +92,7 @@ func (a *api) GetAllUsers(c echo.Context) error {
 		FirstName string    `json:"first_name"`
 		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
-		Role      string    `json:"role"`
+		Role      uint    `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
 	}
 
@@ -103,7 +103,7 @@ func (a *api) GetAllUsers(c echo.Context) error {
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Email:     user.Email,
-			Role:      user.Role.Role,
+			Role:      user.RoleID,
 			CreatedAt: user.CreatedAt,
 		})
 	}

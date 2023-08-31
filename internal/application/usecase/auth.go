@@ -76,7 +76,6 @@ func generateJWT(user *domain.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SIGNING_KEY")))
 	if err != nil {
-		// utils.Logger.Error("cannot sign jwt, error: %w", err)
 		return "", err
 	}
 

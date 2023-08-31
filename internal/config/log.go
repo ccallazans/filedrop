@@ -6,8 +6,6 @@ import (
 	"go.uber.org/zap"
 )
 
-
-
 func NewLogger(service string) *zap.Logger {
 	env := os.Getenv("ENV")
 	
