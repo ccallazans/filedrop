@@ -63,15 +63,15 @@ func (a *api) AccessFile(c echo.Context) error {
 		return &utils.ValidationError{Message: "bad request"}
 	}
 
-	file, err := a.fileUsecase.DownloadFile(c.Request().Context(), request.Hash, request.Secret)
+	file, filename, err := a.fileUsecase.DownloadFile(c.Request().Context(), request.Hash, request.Secret)
 	if err != nil {
 		return err
 	}
 	defer file.Body.Close()
 
+	c.Response().Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	c.Response().Header().Set("Content-Type", *file.ContentType)
 	c.Response().Header().Set("Content-Length", fmt.Sprintf("%d", file.ContentLength))
-	c.Response().Header().Set("Content-Disposition", "attachment;")
 	io.Copy(c.Response().Writer, file.Body)
 
 	return nil

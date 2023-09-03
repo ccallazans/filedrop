@@ -7,7 +7,6 @@ import (
 )
 
 func HasTransaction(ctx context.Context, tx *gorm.DB) *gorm.DB {
-	
 	tr := tx
 	hasTransaction := ctx.Value("tx")
 	if hasTransaction != nil {

@@ -36,7 +36,7 @@ func (r *PostgresUserStore) FindByID(ctx context.Context, id uint) (*domain.User
 	user := &domain.User{}
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Preload("Role").Where("id = ?", id).First(user).Error
+	err := tx.WithContext(ctx).Preload("Role").Where("id = ?", id).Limit(1).Find(user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (r *PostgresUserStore) FindByEmail(ctx context.Context, email string) (*dom
 	user := &domain.User{}
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Preload("Role").Where("email = ?", email).First(user).Error
+	err := tx.WithContext(ctx).Preload("Role").Where("email = ?", email).Limit(1).Find(user).Error
 	if err != nil {
 		return nil, err
 	}

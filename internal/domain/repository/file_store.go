@@ -34,7 +34,7 @@ func (r *PostgresFileStore) FindByID(ctx context.Context, id uint) (*domain.File
 	file := &domain.File{}
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Preload("User").Where("id = ?", id).First(file).Error
+	err := tx.WithContext(ctx).Preload("User").Where("id = ?", id).Limit(1).Find(file).Error
 	if err != nil {
 		return nil, err
 	}

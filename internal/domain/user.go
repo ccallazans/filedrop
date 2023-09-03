@@ -10,8 +10,8 @@ import (
 
 type User struct {
 	ID        uint
-	FirstName string `validate:"required,lte=255"`
-	LastName  string `validate:"required,lte=255"`
+	FirstName string `validate:"required,gte=2,lte=255"`
+	LastName  string `validate:"required,gte=2,lte=255"`
 	Email     string `validate:"required,email"`
 	Password  string `validate:"required,gte=6,lte=255"`
 	RoleID    uint   `validate:"required"`

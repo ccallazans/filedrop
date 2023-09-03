@@ -72,19 +72,19 @@ func (u *FileUsecase) UploadFile(ctx context.Context, secret string, multiPartFi
 	return fileAccess.Hash, nil
 }
 
-func (u *FileUsecase) DownloadFile(ctx context.Context, hash string, secret string) (*s3.GetObjectOutput, error) {
+func (u *FileUsecase) DownloadFile(ctx context.Context, hash string, secret string) (*s3.GetObjectOutput, string, error) {
 	validAccessFile, err := u.fileAccessStore.FindByHash(ctx, hash)
 	if err != nil {
-		return nil, &utils.NotFoundError{Message: "hash access does not exist"}
+		return nil, "", &utils.NotFoundError{Message: "hash access does not exist"}
 	}
 
 	if secret != validAccessFile.Secret {
-		return nil, &utils.AuthenticationError{Message: "invalid secret"}
+		return nil, "", &utils.AuthenticationError{Message: "invalid secret"}
 	}
 
 	file, err := u.fileStore.FindByID(ctx, validAccessFile.FileID)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	bufferFile, err := u.s3Client.GetObject(ctx, &s3.GetObjectInput{
@@ -92,10 +92,10 @@ func (u *FileUsecase) DownloadFile(ctx context.Context, hash string, secret stri
 		Key:    aws.String(strings.Split(file.Location, "/")[1]),
 	})
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return bufferFile, nil
+	return bufferFile, file.Filename, nil
 }
 
 func uploadFileToS3(ctx context.Context, s3Client *s3.Client, fileHeader *multipart.FileHeader) (string, error) {

@@ -36,7 +36,7 @@ func (r *PostgresFileAccessStore) FindByID(ctx context.Context, id uint) (*domai
 	fileAccess := &domain.FileAccess{}
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Preload("File").Where("id = ?", id).First(fileAccess).Error
+	err := tx.WithContext(ctx).Preload("File").Where("id = ?", id).Limit(1).Find(fileAccess).Error
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (r *PostgresFileAccessStore) FindByHash(ctx context.Context, hash string) (
 	fileAccess := &domain.FileAccess{}
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Preload("File").Where("hash = ?", hash).First(fileAccess).Error
+	err := tx.WithContext(ctx).Preload("File").Where("hash = ?", hash).Limit(1).Find(fileAccess).Error
 	if err != nil {
 		return nil, err
 	}
