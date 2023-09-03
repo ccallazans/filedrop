@@ -1,190 +1,137 @@
 package usecase
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"errors"
+	"context"
 	"fmt"
+	"math/rand"
 	"mime/multipart"
-	"strconv"
+	"os"
+	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/ccallazans/filedrop/internal/application/service"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/google/uuid"
+
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/ccallazans/filedrop/internal/domain/repository"
-	"github.com/ccallazans/filedrop/internal/domain/valueobject"
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
+	"github.com/ccallazans/filedrop/internal/utils"
 )
 
 const (
 	MAX_FILE_SIZE = 1024 * 5
 )
 
-type UploadUsecase struct {
-	userRepo       repository.IUser
-	fileRepo       repository.IFile
-	accessFileRepo repository.IAccessFile
-	s3Client       service.IS3Client
+type FileUsecase struct {
+	fileStore       repository.FileStore
+	fileAccessStore repository.FileAccessStore
+	userStore       repository.UserStore
+	s3Client        *s3.Client
 }
 
-func NewUploadUsecase(userRepo repository.IUser, fileRepo repository.IFile, accessFileRepo repository.IAccessFile, s3Client service.IS3Client) UploadUsecase {
-	return UploadUsecase{
-		userRepo:       userRepo,
-		fileRepo:       fileRepo,
-		accessFileRepo: accessFileRepo,
-		s3Client:       s3Client,
+func NewFileUsecase(fileStore repository.FileStore, fileAccessStore repository.FileAccessStore, userStore repository.UserStore, s3Client *s3.Client) *FileUsecase {
+	return &FileUsecase{
+		fileStore:       fileStore,
+		fileAccessStore: fileAccessStore,
+		userStore:       userStore,
+		s3Client:        s3Client,
 	}
 }
 
-func (u *UploadUsecase) WithTrx(trxHandle *gorm.DB) UploadUsecase {
-	u.userRepo = u.userRepo.WithTrx(trxHandle)
-	fileRepo.WithTrx(trxHandle)
-	accessFileRepo.WithTrx(trxHandle)
-	return u
-}
-
-type UploadFileArgs struct {
-	Lock       bool
-	AccessCode string
-	File       *multipart.FileHeader
-}
-
-func (u *UploadUsecase) UploadFile(args *UploadFileArgs) error {
-
-	// if args.File.Size > MAX_FILE_SIZE {
-	// 	return fmt.Errorf("max size allowed: %d, uploaded file: %d", MAX_FILE_SIZE, args.File.Size)
-	// }
-
-	txFileRepo, err := u.fileRepo.Begin()
-	if err != nil {
-		return err
-	}
-	txAccessFileRepo, err := u.accessFileRepo.Begin()
-	if err != nil {
-		u.fileRepo.Rollback()
-		return err
-	}
-
-	u.fileRepo
-
-	defer func() {
-		if r := recover(); r != nil {
-			u.fileRepo.Rollback()
-			u.accessFileRepo.Rollback()
-			fmt.Println("Recovered from panic during transaction:", r)
-		} else if err != nil {
-			u.fileRepo.Rollback()
-			u.accessFileRepo.Rollback()
-			fmt.Println("Rolling back transaction due to error:", err)
-		} else {
-			u.fileRepo.Commit()
-			u.accessFileRepo.Commit()
-		}
-	}()
-
-	location, err := u.s3Client.Save(args.File.Filename, args.File)
-	if err != nil {
-		return err
-	}
-
-	fileSize := strconv.FormatFloat(bytesToMegabytes(args.File.Size), 'f', -1, 64)
-	saveFile := &domain.File{
-		UUID:        uuid.New(),
-		Filename:    args.File.Filename,
-		Size:        fileSize,
-		LocationURL: location,
-		UserUUID:    uuid.MustParse("74318875-6aca-4bdc-a00b-4d2c5d38dd0f"),
-	}
-
-	hash, err := generateRandomHash(6)
-	if err != nil {
-		u.fileRepo.Rollback()
-		return err
-	}
-
-	saveAccessFile := &valueobject.AccessFile{
-		Hash:       hash,
-		Lock:       args.Lock,
-		AccessCode: args.AccessCode,
-		FileUUID:   uuid.MustParse("74318875-6aca-4bdc-a00b-4d2c5d38dd0f"),
-	}
-
-	err = u.fileRepo.Save(saveFile)
-	if err != nil {
-		u.fileRepo.Rollback()
-		return err
-	}
-
-	err = u.accessFileRepo.Save(saveAccessFile)
-	if err != nil {
-		fmt.Println("---------------------------------> AAAAAAAAAAAA")
-		u.fileRepo.Rollback()
-		return err
-	}
-
-	err = u.fileRepo.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type AccessFileArgs struct {
-	AccessCode string
-}
-
-func (u *UploadUsecase) AccessFile(hash string, args AccessFileArgs) (*aws.WriteAtBuffer, error) {
-
-	validAccessFile, err := u.accessFileRepo.FindByHash(hash)
-	if err != nil {
-		return nil, errors.New("invalid file")
-	}
-
-	if validAccessFile.Lock {
-		err = bcrypt.CompareHashAndPassword([]byte(validAccessFile.AccessCode), []byte(args.AccessCode))
-		if err != nil {
-			return nil, errors.New("invalid access code")
-		}
-	}
-
-	file, err := u.fileRepo.FindByUUID(validAccessFile.FileUUID)
-	if err != nil {
-		return nil, errors.New("could not find file")
-	}
-
-	bufferFile, err := u.s3Client.Get(file.Filename)
-	if err != nil {
-		return nil, errors.New("could not download file")
-	}
-
-	return bufferFile, nil
-}
-
-func generateRandomHash(length int) (string, error) {
-	// Calculate the number of bytes needed to generate the hash
-	byteLength := (length * 3) / 4
-
-	// Create a byte slice to hold the random bytes
-	bytes := make([]byte, byteLength)
-
-	// Read random bytes from the crypto/rand package
-	_, err := rand.Read(bytes)
+func (u *FileUsecase) UploadFile(ctx context.Context, secret string, multiPartFile *multipart.FileHeader) (string, error) {
+	ctxUser, err := GetContextUser(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	// Encode the random bytes to base64
-	hash := base64.URLEncoding.EncodeToString(bytes)
+	tx := u.fileStore.DB().Begin()
+	ctxTx := context.WithValue(ctx, "tx", tx)
 
-	// Remove any padding characters from the base64 string
-	hash = hash[:length]
+	location, err := uploadFileToS3(ctxTx, u.s3Client, multiPartFile)
+	if err != nil {
+		return "", err
+	}
 
-	return hash, nil
+	file := domain.NewFile(multiPartFile.Filename, fmt.Sprintf("%d", multiPartFile.Size), location, ctxUser.ID)
+
+	err = u.fileStore.Save(ctxTx, file)
+	if err != nil {
+		tx.Rollback()
+		return "", err
+	}
+
+	fileAccess := domain.NewFileAccess(generateRandomHash(5), secret, file.ID)
+
+	err = u.fileAccessStore.Save(ctxTx, fileAccess)
+	if err != nil {
+		tx.Rollback()
+		return "", err
+	}
+
+	tx.Commit()
+
+	return fileAccess.Hash, nil
 }
 
-func bytesToMegabytes(bytes int64) float64 {
-	return float64(bytes) / (1024 * 1024)
+func (u *FileUsecase) DownloadFile(ctx context.Context, hash string, secret string) (*s3.GetObjectOutput, string, error) {
+	validAccessFile, err := u.fileAccessStore.FindByHash(ctx, hash)
+	if err != nil {
+		return nil, "", &utils.NotFoundError{Message: "hash access does not exist"}
+	}
+
+	if secret != validAccessFile.Secret {
+		return nil, "", &utils.AuthenticationError{Message: "invalid secret"}
+	}
+
+	file, err := u.fileStore.FindByID(ctx, validAccessFile.FileID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	bufferFile, err := u.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(os.Getenv("AWS_BUCKET")),
+		Key:    aws.String(strings.Split(file.Location, "/")[1]),
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	return bufferFile, file.Filename, nil
+}
+
+func uploadFileToS3(ctx context.Context, s3Client *s3.Client, fileHeader *multipart.FileHeader) (string, error) {
+	openFile, err := fileHeader.Open()
+	if err != nil {
+		return "", err
+	}
+	defer openFile.Close()
+
+	key := uuid.NewString()
+
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:             aws.String(os.Getenv("AWS_BUCKET")),
+		Key:                aws.String(key),
+		Body:               openFile,
+		ContentDisposition: aws.String("attachment"),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	location := fmt.Sprintf("%s/%s", os.Getenv("AWS_BUCKET"), key)
+
+	return location, nil
+}
+
+func generateRandomHash(length int) string {
+	characters := []string{
+		"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+		"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+	}
+
+	hash := ""
+	for i := 0; i < length; i++ {
+		hash += characters[rand.Intn(len(characters))]
+	}
+
+	return hash
 }
