@@ -1,11 +1,13 @@
 package domain
 
+type RoleEnum uint
+
 const (
-	ADMIN = 1
-	USER  = 2
+	ADMIN RoleEnum = 1
+	USER  RoleEnum = 2
+	GUEST RoleEnum = 3
 )
 
 type Role struct {
 	ID   uint
-	Role string
 }

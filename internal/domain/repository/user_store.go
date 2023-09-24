@@ -10,10 +10,10 @@ import (
 type UserStore interface {
 	DB() *gorm.DB
 	FindAll(ctx context.Context) []*domain.User
-	FindByID(ctx context.Context, id uint) (*domain.User, error)
+	FindByID(ctx context.Context, id string) (*domain.User, error)
 	FindByEmail(ctx context.Context, email string) (*domain.User, error)
 	Save(ctx context.Context, user *domain.User) error
-	DeleteByID(ctx context.Context, uuid uint) error
+	DeleteByID(ctx context.Context, id string) error
 }
 
 // IMPLEMENTATION
@@ -32,13 +32,17 @@ func (r *PostgresUserStore) DB() *gorm.DB {
 	return r.db
 }
 
-func (r *PostgresUserStore) FindByID(ctx context.Context, id uint) (*domain.User, error) {
+func (r *PostgresUserStore) FindByID(ctx context.Context, id string) (*domain.User, error) {
 	user := &domain.User{}
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Preload("Role").Where("id = ?", id).Limit(1).Find(user).Error
-	if err != nil {
-		return nil, err
+	err := tx.WithContext(ctx).Preload("Role").First(&user, "id = ?", id)
+	if err.Error != nil {
+		if err.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		
+		return nil, err.Error
 	}
 
 	return user, nil
@@ -48,9 +52,13 @@ func (r *PostgresUserStore) FindByEmail(ctx context.Context, email string) (*dom
 	user := &domain.User{}
 
 	tx := HasTransaction(ctx, r.db)
-	err := tx.WithContext(ctx).Preload("Role").Where("email = ?", email).Limit(1).Find(user).Error
-	if err != nil {
-		return nil, err
+	err := tx.WithContext(ctx).Preload("Role").First(&user, "email = ?", email)
+	if err.Error != nil {
+		if err.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+
+		return nil, err.Error
 	}
 
 	return user, nil
@@ -75,7 +83,7 @@ func (r *PostgresUserStore) Save(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
-func (r *PostgresUserStore) DeleteByID(ctx context.Context, id uint) error {
+func (r *PostgresUserStore) DeleteByID(ctx context.Context, id string) error {
 	user := &domain.User{}
 
 	tx := HasTransaction(ctx, r.db)

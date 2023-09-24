@@ -3,39 +3,39 @@ package middlewares
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
-	"github.com/ccallazans/filedrop/internal/application/usecase"
-	"github.com/ccallazans/filedrop/internal/utils"
+	"github.com/ccallazans/filedrop/internal/application/service"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
 
-func AuthenticationMiddleware(next echo.HandlerFunc, roles []int) echo.HandlerFunc {
+func Auth(next echo.HandlerFunc, roles []int) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// extract the token from the Authorization header
 		authHeader := c.Request().Header.Get("Authorization")
 		if authHeader == "" {
-			return &utils.BadRequestError{Message: "authorization header is empty"}
+			return fmt.Errorf("authorization header is empty") //&utils.BadRequestError{Message: "authorization header is empty"}
 		}
 		authHeaderParts := strings.Split(authHeader, " ")
 		if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
-			return &utils.BadRequestError{Message: "invalid authorization header format, expected 'Bearer <token>'"}
+			return fmt.Errorf("invalid authorization header format, expected 'Bearer <token>'") //&utils.BadRequestError{Message: "invalid authorization header format, expected 'Bearer <token>'"}
 		}
 		tokenString := authHeaderParts[1]
 
 		// validate the token
-		token, err := jwt.ParseWithClaims(tokenString, &usecase.JWTClaim{}, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(tokenString, &service.JWTClaim{}, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("JWT_SIGNING_KEY")), nil
 		})
 		if err != nil {
-			return &utils.AuthenticationError{Message: "invalid token"}
+			return err //&utils.AuthenticationError{Message: "invalid token"}
 		}
 
-		claims, ok := token.Claims.(*usecase.JWTClaim)
+		claims, ok := token.Claims.(*service.JWTClaim)
 		if !ok || !token.Valid {
-			return &utils.AuthenticationError{Message: "token expired"}
+			return fmt.Errorf("token expired")//&utils.AuthenticationError{Message: "token expired"}
 		}
 
 		// set the user context for the downstream handlers
@@ -43,7 +43,7 @@ func AuthenticationMiddleware(next echo.HandlerFunc, roles []int) echo.HandlerFu
 
 		err = verifyRoles(user.Role, roles)
 		if err != nil {
-			return &utils.AuthorizationError{Message: "user not allowed"}
+			return err//&utils.AuthorizationError{Message: "user not allowed"}
 		}
 
 		ctx := context.WithValue(c.Request().Context(), "user", &user)
@@ -64,7 +64,7 @@ func verifyRoles(userRole uint, roles []int) error {
 	}
 
 	if !roleMap[int(userRole)] {
-		return errors.New("")
+		return errors.New("aaaaaaaaaaa")
 	}
 
 	return nil

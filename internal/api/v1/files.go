@@ -6,34 +6,33 @@ import (
 	"mime/multipart"
 	"net/http"
 
-	"github.com/ccallazans/filedrop/internal/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 )
 
 func (a *api) UploadFile(c echo.Context) error {
 	type UploadFileRequest struct {
-		Secret string                `form:"secret" validate:"omitempty"`
-		File   *multipart.FileHeader `form:"file" validate:"required"`
+		Password string                `form:"password" validate:"omitempty"`
+		File     *multipart.FileHeader `form:"file" validate:"required"`
 	}
 
 	var request UploadFileRequest
 	err := c.Bind(&request)
 	if err != nil {
-		return &utils.BadRequestError{}
+		return err
 	}
 
 	request.File, err = c.FormFile("file")
 	if err != nil {
-		return &utils.BadRequestError{}
+		return err
 	}
 
 	err = validator.New().Struct(request)
 	if err != nil {
-		return &utils.BadRequestError{}
+		return err
 	}
 
-	hash, err := a.fileUsecase.UploadFile(c.Request().Context(), request.Secret, request.File)
+	hash, err := a.fileService.Upload(c.Request().Context(), request.Password, request.File)
 	if err != nil {
 		return err
 	}
@@ -46,24 +45,12 @@ func (a *api) UploadFile(c echo.Context) error {
 	return c.JSON(http.StatusCreated, UploadFileResponse{hash})
 }
 
-func (a *api) AccessFile(c echo.Context) error {
-	type AccessFileRequest struct {
-		Hash   string `json:"hash" validate:"required"`
-		Secret string `json:"secret" validate:"omitempty"`
-	}
+// TODO: use queryParam to get file
+func (a *api) DownloadFile(c echo.Context) error {
+	hash := c.QueryParam("hash")
+	key := c.QueryParam("key")
 
-	var request AccessFileRequest
-	err := c.Bind(&request)
-	if err != nil {
-		return &utils.ValidationError{Message: "bad request"}
-	}
-
-	err = validator.New().Struct(request)
-	if err != nil {
-		return &utils.ValidationError{Message: "bad request"}
-	}
-
-	file, filename, err := a.fileUsecase.DownloadFile(c.Request().Context(), request.Hash, request.Secret)
+	file, filename, err := a.fileService.DownloadFile(c.Request().Context(), hash, key)
 	if err != nil {
 		return err
 	}

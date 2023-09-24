@@ -2,24 +2,31 @@ package domain
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type File struct {
-	ID        uint
+	ID        string
 	Filename  string
-	Size      string
+	Password  string
 	Location  string
-	UserID    uint
+	Hash      string
+	IsActive  bool
+	UserID    string
 	User      User
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-func NewFile(filename string, size string, location string, userID uint) *File {
+func NewFile(filename string, password string, location string, hash string, userId string) *File {
 	return &File{
+		ID: uuid.NewString(),
 		Filename: filename,
-		Size:     size,
+		Password: password,
 		Location: location,
-		UserID:   userID,
+		Hash:     hash,
+		IsActive: true,
+		UserID:   userId,
 	}
 }

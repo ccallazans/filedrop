@@ -1,9 +1,9 @@
+build:
+	CGO_ENABLED=0 GOOS=linux go build -o ./bin/app ./cmd/main.go
+
 run:
 	go run cmd/*
 
-lint:
-	docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.54.2 golangci-lint run -v
-	
 migrate-up:
 	docker run -v  $(PWD)/migrations:/migrations --network host migrate/migrate -path=/migrations/ -database "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable" up
 
