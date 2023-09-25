@@ -26,7 +26,7 @@ func (a *api) Login(c echo.Context) error {
 		return err
 	}
 
-	token, err := a.accountService.Login(c.Request().Context(), request.Email, request.Password)
+	token, err := a.authService.Login(c.Request().Context(), request.Email, request.Password)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,6 @@ func (a *api) Login(c echo.Context) error {
 func (a *api) Register(c echo.Context) error {
 	type RegisterRequest struct {
 		FirstName string `json:"first_name" validate:"required"`
-		LastName  string `json:"last_name" validate:"required"`
 		Email     string `json:"email" validate:"required"`
 		Password  string `json:"password" validate:"required"`
 	}
@@ -57,7 +56,7 @@ func (a *api) Register(c echo.Context) error {
 		return err
 	}
 
-	user, err := a.accountService.Register(c.Request().Context(), request.FirstName, request.LastName, request.Email, request.Password)
+	user, err := a.authService.Register(c.Request().Context(), request.FirstName, request.Email, request.Password)
 	if err != nil {
 		return err
 	}
@@ -65,7 +64,6 @@ func (a *api) Register(c echo.Context) error {
 	type RegisterResponse struct {
 		ID        string    `json:"id"`
 		FirstName string    `json:"first_name"`
-		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
 		Role      uint      `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
@@ -75,7 +73,6 @@ func (a *api) Register(c echo.Context) error {
 	return c.JSON(http.StatusCreated, RegisterResponse{
 		ID:        user.ID,
 		FirstName: user.FirstName,
-		LastName:  user.LastName,
 		Email:     user.Email,
 		Role:      user.RoleID,
 		CreatedAt: user.CreatedAt,
@@ -85,7 +82,7 @@ func (a *api) Register(c echo.Context) error {
 func (a *api) FindAccountByID(c echo.Context) error {
 	id := c.Param("id")
 
-	user, err := a.accountService.FindByID(c.Request().Context(), id)
+	user, err := a.authService.FindByID(c.Request().Context(), id)
 	if err != nil {
 		return err
 	}
@@ -93,7 +90,6 @@ func (a *api) FindAccountByID(c echo.Context) error {
 	type FindAccountByIDResponse struct {
 		ID        string    `json:"id"`
 		FirstName string    `json:"first_name"`
-		LastName  string    `json:"last_name"`
 		Email     string    `json:"email"`
 		Role      uint      `json:"role"`
 		CreatedAt time.Time `json:"created_at"`
@@ -102,7 +98,6 @@ func (a *api) FindAccountByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, FindAccountByIDResponse{
 		ID:        user.ID,
 		FirstName: user.FirstName,
-		LastName:  user.LastName,
 		Email:     user.Email,
 		Role:      user.RoleID,
 		CreatedAt: user.CreatedAt,

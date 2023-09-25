@@ -15,8 +15,8 @@ import (
 )
 
 type api struct {
-	accountService service.AccountService
-	fileService    service.FileService
+	authService service.AuthService
+	fileService service.FileService
 }
 
 func NewApi(db *gorm.DB) (*api, error) {
@@ -25,19 +25,20 @@ func NewApi(db *gorm.DB) (*api, error) {
 	fileStore := repository.NewPostgresFileStore(db)
 
 	// S3Client
-	awsConfig, err := config.NewAWSConfig()
+	cfg, err := config.NewAWSConfig()
 	if err != nil {
 		return nil, err
 	}
-	s3Client := config.NewS3Client(awsConfig)
+
+	s3Client := config.NewS3Client(cfg)
 
 	// Services
-	accountService := service.NewAccountService(userStore)
+	authService := service.NewAuthService(userStore)
 	fileService := service.NewFileService(fileStore, userStore, s3Client)
 
 	return &api{
-		accountService: *accountService,
-		fileService:    *fileService,
+		authService: *authService,
+		fileService: *fileService,
 	}, nil
 }
 
@@ -53,15 +54,18 @@ func (a *api) Routes() *echo.Echo {
 	e.Use(middleware.Recover())
 	// e.HTTPErrorHandler = APIErrorHandler
 
-	account := e.Group("/accounts")
-	account.POST("/login", a.Login)
-	account.POST("/register", a.Register)
-	account.GET("/:id", middlewares.Auth(a.FindAccountByID, []int{int(domain.ADMIN), int(domain.USER)}))
+	v1 := e.Group("/api/v1")
 
-	fileGroup := e.Group("/files")
-	fileGroup.POST("/upload", middlewares.Auth(a.UploadFile, []int{}))
-	// fileGroup.GET("/download", middlewares.Auth(a.DownloadFile, []int{}))
-	fileGroup.GET("/download", a.DownloadFile)
+	auth := v1.Group("/auth")
+	auth.POST("/login", a.Login)
+	auth.POST("/register", a.Register)
+
+	user := v1.Group("/users")
+	user.GET("/:id", middlewares.Auth(a.FindAccountByID, []int{int(domain.ADMIN), int(domain.USER)}))
+
+	file := v1.Group("/files")
+	file.POST("/upload", middlewares.Auth(a.UploadFile, []int{}))
+	file.GET("/", a.DownloadFile)
 
 	return e
 }

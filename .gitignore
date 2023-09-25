@@ -22,3 +22,5 @@ go.work
 
 # Files
 .env
+bin/
+filedrop.yaml

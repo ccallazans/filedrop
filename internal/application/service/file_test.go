@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"log"
 	"reflect"
 	"testing"
 
@@ -10,17 +9,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/ccallazans/filedrop/internal/config"
 	"github.com/ccallazans/filedrop/internal/domain/repository"
-	"github.com/ccallazans/filedrop/test"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"gorm.io/gorm"
 )
 
 func TestFileService_DownloadFile(t *testing.T) {
-	_, db := beforeTest()
+	container := config.NewTestContainerStruct()
 	ctx := context.Background()
 
-	implFileStore := repository.NewPostgresFileStore(db)
-	implUserStore := repository.NewPostgresUserStore(db)
+	implFileStore := repository.NewPostgresFileStore(container.DB)
+	implUserStore := repository.NewPostgresUserStore(container.DB)
 	implS3Client := config.NewS3Client(aws.NewConfig())
 
 	type fields struct {
@@ -72,24 +68,4 @@ func TestFileService_DownloadFile(t *testing.T) {
 			}
 		})
 	}
-}
-
-func beforeTest() (*postgres.PostgresContainer, *gorm.DB) {
-	container := test.NewPostgresTestContainer()
-
-	connStr, err := container.ConnectionString(context.TODO(), "sslmode=disable", "application_name=test")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	db, err := config.NewPostgresConn(connStr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return container, db
-}
-
-func fake(db *gorm.DB) {
-	// fakeData := `insert into users(id, first_name, last_name, email, password, role_id, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?)`
 }

@@ -11,13 +11,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/ccallazans/filedrop/internal/domain/repository"
 )
 
 const (
-	MAX_FILE_SIZE   = 1024 * 5
 	ErrFileNotFound = "file not found"
 )
 
@@ -49,8 +49,22 @@ func (s *FileService) Upload(ctx context.Context, password string, multiPartFile
 		return "", err
 	}
 
-	hash := generateRandomHash(6)
-	file := domain.NewFile(multiPartFile.Filename, password, location, hash, ctxUser.ID)
+	hashedPassword, err := hash(password)
+	if err != nil {
+		return "", err
+	}
+
+	hashUrl := generateRandomHash(6)
+
+	file := &domain.File{
+		ID:       uuid.NewString(),
+		Filename: multiPartFile.Filename,
+		Password: hashedPassword,
+		Location: location,
+		Hash:     hashUrl,
+		IsActive: true,
+		UserID:   ctxUser.ID,
+	}
 
 	err = s.fileStore.Save(ctxTx, file)
 	if err != nil {
@@ -60,7 +74,7 @@ func (s *FileService) Upload(ctx context.Context, password string, multiPartFile
 
 	tx.Commit()
 
-	return hash, nil
+	return hashUrl, nil
 }
 
 func (s *FileService) DownloadFile(ctx context.Context, hash string, password string) (*s3.GetObjectOutput, string, error) {
@@ -69,8 +83,9 @@ func (s *FileService) DownloadFile(ctx context.Context, hash string, password st
 		return nil, "", fmt.Errorf(ErrFileNotFound)
 	}
 
-	if password != file.Password {
-		return nil, "", fmt.Errorf(ErrInvalidPassword)
+	err = bcrypt.CompareHashAndPassword([]byte(file.Password), []byte(password))
+	if err != nil {
+		return nil, "", fmt.Errorf(ErrFileNotFound)
 	}
 
 	bufferFile, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{

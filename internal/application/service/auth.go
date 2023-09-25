@@ -9,6 +9,7 @@ import (
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/ccallazans/filedrop/internal/domain/repository"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -27,22 +28,21 @@ type JWTClaim struct {
 type JWTUser struct {
 	ID        string
 	FirstName string
-	LastName  string
 	Email     string
 	Role      uint
 }
 
-type AccountService struct {
+type AuthService struct {
 	userStore repository.UserStore
 }
 
-func NewAccountService(userStore repository.UserStore) *AccountService {
-	return &AccountService{
+func NewAuthService(userStore repository.UserStore) *AuthService {
+	return &AuthService{
 		userStore: userStore,
 	}
 }
 
-func (s *AccountService) Login(ctx context.Context, email string, password string) (string, error) {
+func (s *AuthService) Login(ctx context.Context, email string, password string) (string, error) {
 	validUser, err := s.userStore.FindByEmail(ctx, email)
 	if validUser == nil {
 		return "", fmt.Errorf(ErrUserNotFound)
@@ -61,26 +61,34 @@ func (s *AccountService) Login(ctx context.Context, email string, password strin
 	return token, nil
 }
 
-func (s *AccountService) Register(ctx context.Context, firstName string, lastName string, email string, password string) (*domain.User, error) {
+func (s *AuthService) Register(ctx context.Context, firstName string, email string, password string) (*domain.User, error) {
 	userExists, _ := s.userStore.FindByEmail(ctx, email)
 	if userExists != nil {
 		return nil, fmt.Errorf(ErrEmailAlreadyRegistered)
 	}
 
-	newUser, err := domain.NewUser(firstName, lastName, email, password)
+	hashedPassword, err := hash(password)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.userStore.Save(ctx, newUser)
+	user := &domain.User{
+		ID:        uuid.NewString(),
+		FirstName: firstName,
+		Email:     email,
+		Password:  hashedPassword,
+		RoleID:    uint(domain.USER),
+	}
+
+	err = s.userStore.Save(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf(ErrCreatingUser)
 	}
 
-	return newUser, nil
+	return user, nil
 }
 
-func (s *AccountService) FindByID(ctx context.Context, id string) (*domain.User, error) {
+func (s *AuthService) FindByID(ctx context.Context, id string) (*domain.User, error) {
 	user, _ := s.userStore.FindByID(ctx, id)
 	if user == nil {
 		return nil, fmt.Errorf(ErrUserNotFound)
@@ -89,12 +97,16 @@ func (s *AccountService) FindByID(ctx context.Context, id string) (*domain.User,
 	return user, nil
 }
 
+func hash(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 10)
+	return string(bytes), err
+}
+
 func generateJWT(user *domain.User) (string, error) {
 	claims := JWTClaim{
 		User: JWTUser{
 			ID:        user.ID,
 			FirstName: user.FirstName,
-			LastName:  user.LastName,
 			Email:     user.Email,
 			Role:      user.RoleID,
 		},
