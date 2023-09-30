@@ -1,6 +1,7 @@
 package config
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,14 +9,14 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	_ "github.com/lib/pq"
 )
 
-func NewPostgresConn() (*gorm.DB, error) {
-	connString := os.Getenv("DATABASE_URL")
+func NewPostgresConn() (*sql.DB, error) {
+	connStr := os.Getenv("DATABASE_URL")
 
-	db, err := gorm.Open(postgres.Open(connString), &gorm.Config{})
+	fmt.Println(connStr)
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +24,7 @@ func NewPostgresConn() (*gorm.DB, error) {
 	return db, nil
 }
 
-func RunMigrations(db *gorm.DB) error {
+func RunMigrations(db *sql.DB) error {
 	connString := os.Getenv("DATABASE_URL")
 
 	workDir, _ := os.Getwd()

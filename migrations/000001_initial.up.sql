@@ -10,7 +10,6 @@ insert into roles(role) values ('ADMIN'), ('USER'), ('GUEST');
 create table if not exists users (
     id UUID not null,
     first_name varchar(255) not null,
-    last_name varchar(255) not null,
     email varchar(255) unique not null,
     password varchar(255) not null,
     role_id serial not null,

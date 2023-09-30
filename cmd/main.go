@@ -31,7 +31,7 @@ func main() {
 	}
 
 	router := api.Routes()
-	err = router.Start(":3000")
+	err = router.Start(":8080")
 	if err != nil {
 		log.Fatal(err)
 	}

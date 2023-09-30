@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"mime/multipart"
@@ -36,15 +37,12 @@ func NewFileService(fileStore repository.FileStore, userStore repository.UserSto
 }
 
 func (s *FileService) Upload(ctx context.Context, password string, multiPartFile *multipart.FileHeader) (string, error) {
-	ctxUser, err := getContextUser(ctx)
+	ctxUser, err := GetUserFromCtx(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	tx := s.fileStore.DB().Begin()
-	ctxTx := context.WithValue(ctx, "tx", tx)
-
-	location, err := uploadFileToS3(ctxTx, s.s3Client, multiPartFile)
+	location, err := uploadFileToS3(ctx, s.s3Client, multiPartFile)
 	if err != nil {
 		return "", err
 	}
@@ -66,26 +64,32 @@ func (s *FileService) Upload(ctx context.Context, password string, multiPartFile
 		UserID:   ctxUser.ID,
 	}
 
-	err = s.fileStore.Save(ctxTx, file)
+	err = s.fileStore.Save(ctx, file)
 	if err != nil {
-		tx.Rollback()
 		return "", err
 	}
-
-	tx.Commit()
 
 	return hashUrl, nil
 }
 
 func (s *FileService) DownloadFile(ctx context.Context, hash string, password string) (*s3.GetObjectOutput, string, error) {
+	exists, err := s.fileStore.Exists(ctx, hash)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if !exists {
+		return nil, "", errors.New(ErrFileNotFound)
+	}
+
 	file, err := s.fileStore.FindByHash(ctx, hash)
 	if err != nil {
-		return nil, "", fmt.Errorf(ErrFileNotFound)
+		return nil, "", err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(file.Password), []byte(password))
 	if err != nil {
-		return nil, "", fmt.Errorf(ErrFileNotFound)
+		return nil, "", errors.New(ErrInvalidPassword)
 	}
 
 	bufferFile, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{

@@ -2,16 +2,14 @@ package repository
 
 import (
 	"context"
-
-	"gorm.io/gorm"
+	"database/sql"
 )
 
-func HasTransaction(ctx context.Context, tx *gorm.DB) *gorm.DB {
-	tr := tx
-	hasTransaction := ctx.Value("tx")
-	if hasTransaction != nil {
-		tr = hasTransaction.(*gorm.DB)
+func HasTransaction(ctx context.Context, db *sql.DB) *sql.Tx {
+	tx, ok := ctx.Value("tx").(*sql.Tx)
+	if ok {
+		return tx
 	}
 
-	return tr
+	return nil
 }

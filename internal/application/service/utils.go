@@ -5,15 +5,11 @@ import (
 	"errors"
 )
 
-var ErrGetUserFromContext = "Failed to get user from context"
-
-func getContextUser(ctx context.Context) (*JWTClaim, error) {
-	ctxValue := ctx.Value("user")
-	if ctxValue == nil {
-		return nil, errors.New("error when get user from context")
+func GetUserFromCtx(ctx context.Context) (*JWTUser, error) {
+	user, ok := ctx.Value("user").(*JWTUser)
+	if !ok {
+		return nil, errors.New("user not found in context")
 	}
 
-	ctxUser := ctxValue.(*JWTClaim)
-
-	return ctxUser, nil
+	return user, nil
 }

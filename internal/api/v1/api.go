@@ -1,6 +1,8 @@
 package api
 
 import (
+	"database/sql"
+
 	"github.com/ccallazans/filedrop/internal/api/v1/middlewares"
 	"github.com/ccallazans/filedrop/internal/application/service"
 
@@ -10,8 +12,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-
-	"gorm.io/gorm"
 )
 
 type api struct {
@@ -19,7 +19,7 @@ type api struct {
 	fileService service.FileService
 }
 
-func NewApi(db *gorm.DB) (*api, error) {
+func NewApi(db *sql.DB) (*api, error) {
 	// Repository
 	userStore := repository.NewPostgresUserStore(db)
 	fileStore := repository.NewPostgresFileStore(db)

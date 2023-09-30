@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -11,11 +10,6 @@ import (
 )
 
 func (a *api) UploadFile(c echo.Context) error {
-	type UploadFileRequest struct {
-		Password string                `form:"password" validate:"omitempty"`
-		File     *multipart.FileHeader `form:"file" validate:"required"`
-	}
-
 	var request UploadFileRequest
 	err := c.Bind(&request)
 	if err != nil {
@@ -37,15 +31,10 @@ func (a *api) UploadFile(c echo.Context) error {
 		return err
 	}
 
-	type UploadFileResponse struct {
-		Hash string `json:"hash"`
-	}
-
 	c.Response().Header().Set("Location", fmt.Sprintf("/file/download/%s", hash))
 	return c.JSON(http.StatusCreated, UploadFileResponse{hash})
 }
 
-// TODO: use queryParam to get file
 func (a *api) DownloadFile(c echo.Context) error {
 	hash := c.QueryParam("hash")
 	key := c.QueryParam("key")

@@ -2,22 +2,22 @@ package config
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-	gormPg "gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 type TestContainerStruct struct {
 	PostgresContainer *postgres.PostgresContainer
-	DB                *gorm.DB
+	DB                *sql.DB
 }
 
 var activeTestContainer *TestContainerStruct
@@ -69,7 +69,7 @@ func (t *TestContainerStruct) activateDB() {
 		log.Fatal(err)
 	}
 
-	db, err := gorm.Open(gormPg.Open(connStr), &gorm.Config{})
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -43,14 +44,23 @@ func NewAuthService(userStore repository.UserStore) *AuthService {
 }
 
 func (s *AuthService) Login(ctx context.Context, email string, password string) (string, error) {
+	exists, err := s.userStore.Exists(ctx, email)
+	if err != nil {
+		return "", err
+	}
+
+	if !exists {
+		return "", errors.New(ErrUserNotFound)
+	}
+
 	validUser, err := s.userStore.FindByEmail(ctx, email)
-	if validUser == nil {
-		return "", fmt.Errorf(ErrUserNotFound)
+	if err != nil {
+		return "", err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(validUser.Password), []byte(password))
 	if err != nil {
-		return "", fmt.Errorf(ErrInvalidPassword)
+		return "", errors.New(ErrInvalidPassword)
 	}
 
 	token, err := generateJWT(validUser)
@@ -62,9 +72,13 @@ func (s *AuthService) Login(ctx context.Context, email string, password string) 
 }
 
 func (s *AuthService) Register(ctx context.Context, firstName string, email string, password string) (*domain.User, error) {
-	userExists, _ := s.userStore.FindByEmail(ctx, email)
-	if userExists != nil {
-		return nil, fmt.Errorf(ErrEmailAlreadyRegistered)
+	exists, err := s.userStore.Exists(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists {
+		return nil, errors.New(ErrEmailAlreadyRegistered)
 	}
 
 	hashedPassword, err := hash(password)
@@ -82,7 +96,7 @@ func (s *AuthService) Register(ctx context.Context, firstName string, email stri
 
 	err = s.userStore.Save(ctx, user)
 	if err != nil {
-		return nil, fmt.Errorf(ErrCreatingUser)
+		return nil, errors.New(ErrCreatingUser)
 	}
 
 	return user, nil
@@ -91,7 +105,7 @@ func (s *AuthService) Register(ctx context.Context, firstName string, email stri
 func (s *AuthService) FindByID(ctx context.Context, id string) (*domain.User, error) {
 	user, _ := s.userStore.FindByID(ctx, id)
 	if user == nil {
-		return nil, fmt.Errorf(ErrUserNotFound)
+		return nil, errors.New(ErrUserNotFound)
 	}
 
 	return user, nil
