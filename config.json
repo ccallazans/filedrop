@@ -1,0 +1,20 @@
+{
+    "app": {
+        "name": "local-filedrop"
+    },
+    "aws": {
+        "region": "sa-east-1",
+        "bucket": "filedrop-personal-project"
+    },
+    "db": {
+        "host": "localhost",
+        "port": 5432,
+        "db": "postgres",
+        "user": "postgres",
+        "password": "postgres"
+    },
+    "migrations": {
+        "workdir": "",
+        "folder": "migrations"
+    }
+}

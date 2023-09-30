@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"math/rand"
 	"mime/multipart"
-	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/ccallazans/filedrop/internal/domain"
@@ -93,7 +93,7 @@ func (s *FileService) DownloadFile(ctx context.Context, hash string, password st
 	}
 
 	bufferFile, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(os.Getenv("AWS_BUCKET")),
+		Bucket: aws.String(viper.GetString("aws.bucket")),
 		Key:    aws.String(strings.Split(file.Location, "/")[1]),
 	})
 	if err != nil {
@@ -111,9 +111,10 @@ func uploadFileToS3(ctx context.Context, s3Client *s3.Client, fileHeader *multip
 	defer openFile.Close()
 
 	key := uuid.NewString()
+	bucket := viper.GetString("aws.bucket")
 
 	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:             aws.String(os.Getenv("AWS_BUCKET")),
+		Bucket:             aws.String(bucket),
 		Key:                aws.String(key),
 		Body:               openFile,
 		ContentDisposition: aws.String("attachment"),
@@ -122,7 +123,7 @@ func uploadFileToS3(ctx context.Context, s3Client *s3.Client, fileHeader *multip
 		return "", err
 	}
 
-	location := fmt.Sprintf("%s/%s", os.Getenv("AWS_BUCKET"), key)
+	location := fmt.Sprintf("%s/%s", bucket, key)
 
 	return location, nil
 }

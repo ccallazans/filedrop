@@ -7,10 +7,20 @@ import (
 	"github.com/ccallazans/filedrop/internal/config"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 )
 
 func main() {
-	err := godotenv.Load()
+	viper.SetConfigName("config")
+	viper.SetConfigType("json")
+	viper.AddConfigPath(".")
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Fatalln("Error loading config.json")
+	}
+
+	err = godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}

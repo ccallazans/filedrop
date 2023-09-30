@@ -23,5 +23,3 @@ go.work
 # Files
 .env
 bin/
-filedrop.yaml
-config.json

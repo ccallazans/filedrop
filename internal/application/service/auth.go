@@ -11,6 +11,7 @@ import (
 	"github.com/ccallazans/filedrop/internal/domain/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -125,7 +126,7 @@ func generateJWT(user *domain.User) (string, error) {
 			Role:      user.RoleID,
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    os.Getenv("APP_URL"),
+			Issuer:    viper.GetString("app.name"),
 			Subject:   fmt.Sprint(user.ID),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)),
 			NotBefore: jwt.NewNumericDate(time.Now()),
