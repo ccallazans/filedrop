@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/labstack/gommon/log"
@@ -137,7 +138,7 @@ func (r *PostgresFileStore) Save(ctx context.Context, file *domain.File) error {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, file.ID, file.Filename, file.Password, file.Location, file.Hash, file.IsActive, file.UserID, file.CreatedAt, file.UpdatedAt)
+	_, err = stmt.ExecContext(ctx, file.ID, file.Filename, file.Password, file.Location, file.Hash, file.IsActive, file.UserID, time.Now(), time.Now())
 	if err != nil {
 		log.Error(err)
 		return errors.New("failed to execute query")

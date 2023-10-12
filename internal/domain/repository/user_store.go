@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/ccallazans/filedrop/internal/domain"
 	"github.com/labstack/gommon/log"
@@ -172,7 +173,7 @@ func (r *PostgresUserStore) Save(ctx context.Context, user *domain.User) error {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, user.FirstName, user.Email, user.Password, user.RoleID, user.CreatedAt, user.UpdatedAt)
+	_, err = stmt.ExecContext(ctx, user.FirstName, user.Email, user.Password, user.RoleID, time.Now(), time.Now())
 	if err != nil {
 		log.Error(err)
 		return errors.New("failed to execute query")
